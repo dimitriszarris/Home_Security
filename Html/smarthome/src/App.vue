@@ -180,9 +180,13 @@ export default {
   data: () => ({
     drawer: null,
     dialog: true,
-    alarmSystems: [],
     username: null,
     password: null,
+    environmentSensors: [],
+    doorSensors: [],
+    motionSensors: [],
+    windowSensors: [],
+    soundSensors: [],
   }),
 
   async created() {
@@ -199,16 +203,6 @@ export default {
       this.$store.commit('setLoggedIn', isLoggedIn);
     }
 
-    if (localStorage.getItem('activeAlarm')) {
-      const activeAlarm = localStorage.getItem('activeAlarm');
-      this.activeAlarmGroup = parseInt(activeAlarm, 10);
-      this.$store.commit('setActiveAlarm', parseInt(activeAlarm, 10));
-    } else {
-      this.activeAlarmGroup = 0;
-      localStorage.setItem('activeAlarm', this.activeAlarmGroup);
-      this.$store.commit('setActiveAlarm', 0);
-    }
-
     this.getAlarmSystems();
   },
 
@@ -216,8 +210,11 @@ export default {
     loggedIn() {
       return this.$store.state.loggedIn;
     },
+    alarmSystems() {
+      return this.$store.state.alarmSystems;
+    },
     alarmId() {
-      return this.$store.state.activeAlarm;
+      return this.$store.state.alarmId;
     },
     alarmOn() {
       return this.$store.state.alarmOn;
@@ -235,11 +232,9 @@ export default {
     },
 
     getAlarmSystems() {
-      this.alarmSystems = null;
       fetch('http://interactivehome.ddns.net:8080/alarm_system')
         .then(async (response) => {
           const data = await response.json();
-
           // check for error response
           if (!response.ok) {
             // get error message from body or default to response statusText
@@ -247,12 +242,14 @@ export default {
             alert(error);
           }
 
-          this.alarmSystems = data;
+          this.$store.commit('setAlarmSystems', data);
         })
         .then(() => {
-          this.setActiveAlarm();
-          this.storeActiveAlarm();
+          this.setAlarmId();
           this.getAlarmSystemState();
+          console.log(`alarmId: ${this.alarmId}`);
+          this.$store.dispatch('fetchEnvironmentSensors', this.alarmId);
+          // this.getSensors();
           setInterval(this.getAlarmSystemState, 1000);
         })
         .catch((error) => {
@@ -261,42 +258,35 @@ export default {
         });
     },
 
-    setActiveAlarm() {
-      let i = 0; // The alarm Ids start from 1
+    setAlarmId() {
+      let i = 0; // The alarm Ids start from 1. 0 means no alarm has been selected.
       let alarmIdTmp = null;
-      const storedActiveAlarm = localStorage.getItem('activeAlarm');
-      // alert(`storedActiveAlarm: ${storedActiveAlarm}`);
+      const storedAlarmId = localStorage.getItem('alarmId');
 
-      if (this.alarmId === null && storedActiveAlarm != null) {
-        this.$store.commit('storeActiveAlarm', storedActiveAlarm);
+      if (this.alarmId === null && storedAlarmId != null) {
+        this.$store.commit('setAlarmId', storedAlarmId);
       }
 
-      // alert(`setActiveAlarm - alarmId: ${this.alarmId}`);
       for (; i < this.alarmSystems.length; i += 1) {
-        alarmIdTmp = 0;
         if (this.alarmId === null) {
-          this.$store.commit('storeActiveAlarm', this.alarmSystems[i].id);
+          this.$store.commit('setAlarmId', this.alarmSystems[i].id);
           break;
-        }
-        if (this.alarmId === this.alarmSystems[i].id) {
-          // The radio button is zero-based, the alarm_id starts from 1
+        } else if (this.alarmId === this.alarmSystems[i].id) {
           alarmIdTmp = this.alarmId;
           break;
+        } else if (this.alarmId !== this.alarmSystems[i].id) {
+          alarmIdTmp = this.alarmSystems[i].id;
+          break;
         }
       }
-      this.alarmId = alarmIdTmp;
-    },
+      this.$store.commit('setAlarmId', alarmIdTmp);
 
-    storeActiveAlarm() {
-      // alert(`storeActiveAlarm - alarmId: ${this.alarmId}`);
-      localStorage.removeItem('activeAlarm');
-      localStorage.setItem('activeAlarm', this.alarmId);
-      this.$store.commit('storeActiveAlarm', this.alarmId);
+      localStorage.removeItem('alarmId');
+      localStorage.setItem('alarmId', alarmIdTmp);
     },
 
     getAlarmSystemState() {
-      const aId = parseInt(this.alarmId, 10);
-      fetch(`http://interactivehome.ddns.net:8080/alarm_system_state/${aId}`)
+      fetch(`http://interactivehome.ddns.net:8080/alarm_system_state/${this.alarmId}`)
         .then(async (response) => {
           const data = await response.json();
 
@@ -309,12 +299,110 @@ export default {
 
           this.$store.commit('setAlarmOn', data[0].alarm_on);
           this.$store.commit('setAlarmState', data[0].alarm_state);
-          // this.setSelectedAlarmState();
         })
         .catch((error) => {
           this.errorMessage = error;
           console.error('There was an error!', error);
         });
+    },
+
+    getSensors() {
+      fetch(`http://interactivehome.ddns.net:8080/environment_sensor?alarmId=${this.alarmId}`)
+        .then(async (response) => {
+          const data = await response.json();
+
+          // check for error response
+          if (!response.ok) {
+            // get error message from body or default to response statusText
+            const error = (data && data.message) || response.statusText;
+            alert(error);
+          }
+
+          this.environmentSensors = data;
+          this.$store.commit('setEnvironmentSensors', this.environmentSensors);
+        })
+        .catch((error) => {
+          this.errorMessage = error;
+          console.error('There was an error!', error);
+        });
+
+      fetch(`http://interactivehome.ddns.net:8080/door_sensor?alarmId=${this.alarmId}`)
+        .then(async (response) => {
+          const data = await response.json();
+
+          // check for error response
+          if (!response.ok) {
+            // get error message from body or default to response statusText
+            const error = (data && data.message) || response.statusText;
+            alert(error);
+          }
+
+          this.doorSensors = data;
+          this.$store.commit('setDoorSensors', this.doorSensors);
+        })
+        .catch((error) => {
+          this.errorMessage = error;
+          console.error('There was an error!', error);
+        });
+
+      fetch(`http://interactivehome.ddns.net:8080/motion_sensor?alarmId=${this.alarmId}`)
+        .then(async (response) => {
+          const data = await response.json();
+
+          // check for error response
+          if (!response.ok) {
+            // get error message from body or default to response statusText
+            const error = (data && data.message) || response.statusText;
+            alert(error);
+          }
+
+          this.motionSensors = data;
+          this.$store.commit('setMotionSensors', this.motionSensors);
+        })
+        .catch((error) => {
+          this.errorMessage = error;
+          console.error('There was an error!', error);
+        });
+
+      /*
+      fetch(`http://interactivehome.ddns.net:8080/window_sensor?alarmId=${this.alarmId}`)
+        .then(async (response) => {
+          const data = await response.json();
+
+          // check for error response
+          if (!response.ok) {
+            // get error message from body or default to response statusText
+            const error = (data && data.message) || response.statusText;
+            alert(error);
+          }
+
+          this.windowSensors = data;
+          this.$store.commit('setWindowSensors', this.windowSensors);
+        })
+        .catch((error) => {
+          this.errorMessage = error;
+          console.error('There was an error!', error);
+        });
+
+      fetch(`http://interactivehome.ddns.net:8080/sound_sensor?alarmId=${this.alarmId}`)
+        .then(async (response) => {
+          const data = await response.json();
+
+          // check for error response
+          if (!response.ok) {
+            // get error message from body or default to response statusText
+            const error = (data && data.message) || response.statusText;
+            alert(error);
+          }
+
+          this.soundSensors = data;
+          this.$store.commit('setSoundSensors', this.soundSensors);
+        })
+        .catch((error) => {
+          this.errorMessage = error;
+          console.error('There was an error!', error);
+        });
+        */
     },
   },
 };
