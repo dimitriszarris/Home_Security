@@ -1,6 +1,7 @@
 package com.interactivehome.main_service.controller.events;
 
 
+import com.interactivehome.main_service.model.common.dto.ResponseDto;
 import com.interactivehome.main_service.model.events.dto.DoorSensorStateDto;
 import com.interactivehome.main_service.model.events.entity.AlarmSystemState;
 import com.interactivehome.main_service.model.events.entity.DoorSensorState;
@@ -44,19 +45,26 @@ public class DoorSensorStateController {
 
 
     @PostMapping("/door_sensor_state/{id}")
-    public ResponseEntity<String> postDoorState(@PathVariable Integer id,
-                                                @RequestBody DoorSensorStateDto dto) {
+    public ResponseEntity<ResponseDto> postDoorState(@PathVariable Integer id,
+                                                     @RequestParam(value = "alarmId") Integer alarmId,
+                                                     @RequestBody DoorSensorStateDto dto) {
 
-        List<AlarmSystemState> alarmSystemState = alarmSystemStateService.getAlarmStateByIdFromDateToDate(dto.alarmId, null, null);
-        if(alarmSystemState == null)
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("The alarm is not set");
+        List<AlarmSystemState> alarmSystemState = alarmSystemStateService.getAlarmStateByIdFromDateToDate(alarmId, null, null);
+        if(alarmSystemState == null) {
+            ResponseDto responseDto = new ResponseDto();
+            responseDto.setSuccess(false);
+            responseDto.setMessage("The alarm is not set");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(responseDto);
+        }
         System.out.println("AlarmSystemState state is : " + alarmSystemState.toString());
         if(alarmSystemState.get(0).getAlarmState() == 0) {
             System.out.println("The alarm is deactivated.");
-            return ResponseEntity.ok("200");
+            ResponseDto responseDto = new ResponseDto();
+            responseDto.setSuccess(true);
+            return ResponseEntity.ok(responseDto);
         }
 
-        return doorSensorStateService.saveStateByDoorSensorId(id, alarmSystemState.get(0).getAlarmState(), dto);
+        return doorSensorStateService.saveStateByDoorSensorId(id, alarmId, alarmSystemState.get(0).getAlarmState(), dto);
     }
 
     @GetMapping("/door_sensor_state/{id}")

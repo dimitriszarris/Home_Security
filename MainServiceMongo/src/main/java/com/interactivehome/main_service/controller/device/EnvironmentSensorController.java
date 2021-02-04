@@ -19,8 +19,9 @@ public class EnvironmentSensorController {
     }
 
     @PostMapping("/environment_sensor")
-    public Integer registerEnvironmentSensor(@RequestBody EnvironmentSensorDto dto) {
-        return environmentSensorService.registerEnvironmentSensor(dto);
+    public Integer registerEnvironmentSensor(@RequestBody EnvironmentSensorDto dto,
+                                             @RequestParam(value = "alarmId") Integer alarmId) {
+        return environmentSensorService.registerEnvironmentSensor(dto, alarmId);
     }
 
     @PutMapping("/environment_sensor/{id}")

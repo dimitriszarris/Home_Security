@@ -3,16 +3,6 @@
     <v-row>
       <v-radio-group
        class="radio-grp"
-       label="Active Alarm"
-       v-model="activeAlarmGroup"
-       @change="storeActiveAlarm()"
-      >
-        <v-radio v-for="(alarmSystem, index) of alarmSystems" :key="index"
-        :label=alarmSystem.description>
-        </v-radio>
-      </v-radio-group>
-      <v-radio-group
-       class="radio-grp"
        label="Theme"
        v-model="themeGroup"
        @change="setTheme"
@@ -23,7 +13,19 @@
         </v-radio>
       </v-radio-group>
     </v-row>
-    <v-row>
+    <v-row v-if="alarmId != null">
+      <v-col cols="4" xl="3" lg="4" sm="12" v-for="(alarm, index) of alarmSystems" :key="index">
+        <v-card @click="onChangeActiveAlarm(alarm.id)"
+          elevation="4"
+          :color="(alarm.id == alarmId) ? 'blue' : 'grey'"
+        >
+          <v-card-title class="justify-center">
+            {{alarm.description}}
+          </v-card-title>
+        </v-card>
+      </v-col>
+    </v-row>
+    <v-row v-show="!expandNewSensor">
       <v-col>
         <v-card
          class=""
@@ -34,7 +36,7 @@
             Find new sensor
           </v-card-text>
           <v-card-actions>
-            <v-btn @click="discoverDevice()"
+            <v-btn @click="findNewSensor()"
               color="darkgrey"
             >
               <v-icon color="blue">mdi-access-point-network</v-icon>
@@ -43,48 +45,49 @@
         </v-card>
       </v-col>
     </v-row>
-    <v-row>
-      <v-col cols="12">
-        <v-card class="title"
-          height="100%"
-          >
-            <v-card-title class="title-text justify-center">
-              Sensors
-            </v-card-title>
-        </v-card>
-      </v-col>
-    </v-row>
-    <v-tabs v-model="tab" align-with-title>
-      <v-tabs-slider color="grey"></v-tabs-slider>
-      <v-tab @click="getSensors('environment_sensor', false)">Environment</v-tab>
-      <v-tab @click="getSensors('door_sensor', false)">Door</v-tab>
-      <v-tab @click="getSensors('motion_sensor', false)">Motion</v-tab>
-    </v-tabs>
-    <v-row v-for="(sensor, index) of sensors" :key="index">
+    <v-expand-transition>
       <v-col>
-        <v-card id="sensor" class="sensor-values">
+        <v-card id="sensor" class="sensor-values" v-show="expandNewSensor">
+          <v-card-text>
+            New Sensor
+          </v-card-text>
           <v-row justify="end">
             <v-col>
               <v-tooltip top>
                 <template v-slot:activator="{ on }">
                   <v-icon
-                    color="blue"
+                    :color="(newSensor.enabled === true) ? 'blue' : 'grey'"
                     v-on="on"
                   >mdi-access-point-network</v-icon>
                 </template>
-                <span>Sensor is Online</span>
+                <span v-if="newSensor.enabled">Sensor is Online</span>
+                <span v-else>Sensor is Offline</span>
               </v-tooltip>
             </v-col>
           </v-row>
           <v-row>
           <v-col>
             <v-text-field
+              label="Wifi SSID"
+              class="text-field"
+              maxlength="30"
+              dense
+              v-model="wifiSsid"
+            ></v-text-field>
+            <v-text-field
+              label="Wifi Password"
+              class="text-field"
+              maxlength="30"
+              dense
+              v-model="wifiPassword"
+            ></v-text-field>
+            <v-text-field
               label="Sensor Id"
               class="text-field"
               readonly
               dense
               disabled
-              :value="sensor._id"
+              :value="'Not created yet'"
             ></v-text-field>
             <v-text-field
               label="Created (UTC)"
@@ -92,57 +95,57 @@
               readonly
               dense
               disabled
-              :value="Date(sensor.created_utc).toString()"
+              :value="'Not created yet'"
             ></v-text-field>
             <v-text-field
               label="Description"
               class="text-field"
               maxlength="30"
               dense
-              :value="sensor.description"
-              v-model="sensor.description"
+              :value="newSensor.description"
+              v-model="newSensor.description"
             ></v-text-field>
             <v-text-field
               label="Device Identifier"
               class="text-field"
               maxlength="30"
               dense
-              :value="sensor.device_identifier"
-              v-model="sensor.device_identifier"
+              :value="newSensor.device_identifier"
+              v-model="newSensor.device_identifier"
             ></v-text-field>
             <v-switch
               label="Enabled"
-              v-model="sensor.enabled"
+              v-model="newSensor.enabled"
               dense
               reverse
               class="vswitch"
-              :checked="sensor.enabled">
+              :checked="newSensor.enabled">
             </v-switch>
             <v-switch
               label="Battery Powered"
-              v-model="sensor.battery_powered"
+              v-model="newSensor.battery_powered"
               dense
               class="vswitch"
-              :checked="sensor.battery_powered">
+              :checked="newSensor.battery_powered">
             </v-switch>
             <v-switch v-if="activeTab == 'door_sensor'"
               label="Trigger verification process"
-              v-model="sensor.trigger_verification_process"
+              v-model="newSensor.trigger_verification_process"
               dense
               reverse
               class="vswitch"
-              :checked="sensor.trigger_verification_process">
+              :checked="newSensor.trigger_verification_process">
             </v-switch>
             <v-tooltip top>
               <template v-slot:activator="{ on }">
                 <v-switch
                   v-on="on"
                   label="Arm In"
-                  v-model="sensor.arm_in"
+                  v-model="newSensor.arm_in"
                   dense
                   reverse
                   class="vswitch"
-                  :checked="sensor.arm_in">
+                  :checked="newSensor.arm_in">
                 </v-switch>
               </template>
               <span>Enable/Disable when Alarm is in 'Alarm In' state</span>
@@ -152,11 +155,11 @@
                 <v-switch
                   v-on="on"
                   label="Arm Away"
-                  v-model="sensor.arm_away"
+                  v-model="newSensor.arm_away"
                   dense
                   reverse
                   class="vswitch"
-                  :checked="sensor.arm_away">
+                  :checked="newSensor.arm_away">
                 </v-switch>
               </template>
               <span>Enable/Disable when Alarm is in 'Alarm In' state</span>
@@ -171,30 +174,14 @@
                   v-on="on"
                   class="card-button"
                   elevation="4"
-                  @click="deleteSensor(sensor.sensor_id)">
-                  <div
-                  class="d-flex flex-column justify-space-between align-center">
-                    <v-img src="../assets/delete.png"/>
-                  </div>
-                </v-card>
-              </template>
-              <span>Delete Sensor</span>
-            </v-tooltip>
-            <v-tooltip top>
-              <template v-slot:activator="{ on, attrs }">
-                <v-card
-                  v-bind="attrs"
-                  v-on="on"
-                  class="card-button"
-                  elevation="4"
-                  @click="undoChanges()">
+                  @click="expandNewSensor = false">
                   <div
                   class="d-flex flex-column justify-space-between align-center">
                     <v-img src="../assets/cancel.png"/>
                   </div>
                 </v-card>
               </template>
-              <span>Undo Changes</span>
+              <span>Cancel</span>
             </v-tooltip>
             <v-tooltip top>
               <template v-slot:activator="{ on, attrs }">
@@ -203,51 +190,240 @@
                   v-on="on"
                   class="card-button"
                   elevation="4"
-                  @click="saveChanges(sensor)">
+                  @click="registerSensor(newSensor)">
                   <div
                   class="d-flex flex-column justify-space-between align-center">
                     <v-img src="../assets/check.png"/>
                   </div>
                 </v-card>
               </template>
-              <span>Save Changes</span>
+              <span>Register Sensor</span>
             </v-tooltip>
           </v-row>
         </v-card>
       </v-col>
+    </v-expand-transition>
+    <v-row>
+      <v-col cols="12">
+        <v-card class="title"
+          height="100%"
+          >
+            <v-card-title class="title-text justify-center">
+              Sensors
+            </v-card-title>
+        </v-card>
+      </v-col>
     </v-row>
+    <v-tabs align-with-title>
+      <v-tabs-slider color="grey"></v-tabs-slider>
+      <v-tab @click="onTabChange(environmentSensors, 'environment_sensor')">Environment</v-tab>
+      <v-tab @click="onTabChange(doorSensors, 'door_sensor')">Door</v-tab>
+      <v-tab @click="onTabChange(motionSensors, 'motion_sensor')">Motion</v-tab>
+    </v-tabs>
+    <div v-if="alarmId != null">
+      <v-row v-for="(sensor, index) of sensors" :key="index">
+        <v-col>
+          <v-card id="sensor" class="sensor-values">
+            <v-row justify="end">
+              <v-col>
+                <v-tooltip top>
+                  <template v-slot:activator="{ on }">
+                    <v-icon
+                      :color="(sensor.enabled === true) ? 'blue' : 'grey'"
+                      v-on="on"
+                    >mdi-access-point-network</v-icon>
+                  </template>
+                  <span v-if="sensor.enabled">Sensor is Online</span>
+                  <span v-else>Sensor is Offline</span>
+                </v-tooltip>
+              </v-col>
+            </v-row>
+            <v-row>
+            <v-col>
+              <v-text-field
+                label="Sensor Id"
+                class="text-field"
+                readonly
+                dense
+                disabled
+                :value="sensor.id"
+              ></v-text-field>
+              <v-text-field
+                label="Created (UTC)"
+                class="text-field"
+                readonly
+                dense
+                disabled
+                :value="Date(sensor.created_utc).toString()"
+              ></v-text-field>
+              <v-text-field
+                label="Description"
+                class="text-field"
+                maxlength="30"
+                dense
+                :value="sensor.description"
+                v-model="sensor.description"
+              ></v-text-field>
+              <v-text-field
+                label="Device Identifier"
+                class="text-field"
+                maxlength="30"
+                dense
+                :value="sensor.device_identifier"
+                v-model="sensor.device_identifier"
+              ></v-text-field>
+              <v-switch
+                label="Enabled"
+                v-model="sensor.enabled"
+                dense
+                reverse
+                class="vswitch"
+                :checked="sensor.enabled">
+              </v-switch>
+              <v-switch
+                label="Battery Powered"
+                v-model="sensor.battery_powered"
+                dense
+                class="vswitch"
+                :checked="sensor.battery_powered">
+              </v-switch>
+              <v-switch v-if="activeTab == 'door_sensor'"
+                label="Trigger verification process"
+                v-model="sensor.trigger_verification_process"
+                dense
+                reverse
+                class="vswitch"
+                :checked="sensor.trigger_verification_process">
+              </v-switch>
+              <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                  <v-switch
+                    v-on="on"
+                    label="Arm In"
+                    v-model="sensor.arm_in"
+                    dense
+                    reverse
+                    class="vswitch"
+                    :checked="sensor.arm_in">
+                  </v-switch>
+                </template>
+                <span>Enable/Disable when Alarm is in 'Alarm In' state</span>
+              </v-tooltip>
+              <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                  <v-switch
+                    v-on="on"
+                    label="Arm Away"
+                    v-model="sensor.arm_away"
+                    dense
+                    reverse
+                    class="vswitch"
+                    :checked="sensor.arm_away">
+                  </v-switch>
+                </template>
+                <span>Enable/Disable when Alarm is in 'Alarm In' state</span>
+              </v-tooltip>
+            </v-col>
+            </v-row>
+            <v-row justify="end">
+              <v-tooltip top>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-card
+                    v-bind="attrs"
+                    v-on="on"
+                    class="card-button"
+                    elevation="4"
+                    @click="deleteSensor(sensor.id)">
+                    <div
+                    class="d-flex flex-column justify-space-between align-center">
+                      <v-img src="../assets/delete.png"/>
+                    </div>
+                  </v-card>
+                </template>
+                <span>Delete Sensor</span>
+              </v-tooltip>
+              <v-tooltip top>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-card
+                    v-bind="attrs"
+                    v-on="on"
+                    class="card-button"
+                    elevation="4"
+                    @click="undoChanges()">
+                    <div
+                    class="d-flex flex-column justify-space-between align-center">
+                      <v-img src="../assets/undo.png"/>
+                    </div>
+                  </v-card>
+                </template>
+                <span>Undo Changes</span>
+              </v-tooltip>
+              <v-tooltip top>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-card
+                    v-bind="attrs"
+                    v-on="on"
+                    class="card-button"
+                    elevation="4"
+                    @click="saveChanges(sensor)">
+                    <div
+                    class="d-flex flex-column justify-space-between align-center">
+                      <v-img src="../assets/check.png"/>
+                    </div>
+                  </v-card>
+                </template>
+                <span>Save Changes</span>
+              </v-tooltip>
+            </v-row>
+          </v-card>
+        </v-col>
+      </v-row>
+    </div>
   </v-container>
 </template>
 
 <script>
+// eslint-disable-next-line import/no-duplicates
+// import { v4 as uuidv4 } from 'uuid';
+// eslint-disable-next-line import/no-duplicates
+// import { parse as uuidParse } from 'uuid';
 
 export default {
   name: 'Configuration',
   data() {
     return {
-      alarmSystems: [],
-      activeAlarmGroup: 0,
+      activeAlarmId: this.alarmId,
       themeGroup: null,
-      newDevice: null,
+      expandNewSensor: false,
       activeTab: 'environment_sensor',
-      sensorHeaders: [
-        {
-          text: 'Sensor Id',
-          sortable: false,
-          value: 'sensor_id',
-        },
-        { text: 'Description', value: 'description' },
-        { text: 'Identifier', value: 'device_identifier' },
-        { text: 'Battery Powered', value: 'battery_powered' },
-        { text: 'Enabled', value: 'enabled' },
-        { text: 'Created (UTC)', value: 'created_utc' },
-      ],
-      sensors: [],
+      sensors: null,
+      newSensor: {
+        id: null,
+        description: null,
+        device_identifier: null,
+        battery_powered: null,
+        enabled: null,
+        online: false,
+        created_utc: null,
+        trigger_verification_process: null,
+        arm_in: null,
+        arm_away: null,
+      },
+      gattServer: null,
+      commandService: null,
+      writeCharacteristic: null,
+      alarmCharacteristicUuid: 'ea3e2887-c7a9-44d6-ba91-f6ddaec2a526',
+      deviceCharacteristicUuid: 'cc88b0f2-e905-472c-86a7-8381d137d3d8',
+      wifiSsidCharacteristicUuid: '81015940-d7a3-44a9-b5b1-4cd1cea1ddf2',
+      wifiPasswordCharacteristicUuid: '47578d1f-be08-400a-b2ad-1abd7e1cd9b7',
+      wifiSsid: null,
+      wifiPassword: null,
+      deviceId: null,
     };
   },
 
   created() {
-    this.getAlarmSystems();
+    this.showSensors();
 
     const theme = localStorage.getItem('theme');
     if ((theme === null) || (theme != null && theme === 'dark')) {
@@ -263,8 +439,50 @@ export default {
     loggedIn() {
       return this.$store.state.loggedIn;
     },
+    alarmSystems() {
+      return this.$store.state.alarmSystems;
+    },
     alarmId() {
-      return this.$store.state.activeAlarm;
+      return this.$store.state.alarmId;
+    },
+    environmentSensors() {
+      return this.$store.state.environmentSensors;
+    },
+    doorSensors() {
+      return this.$store.state.doorSensors;
+    },
+    motionSensors() {
+      return this.$store.state.motionSensors;
+    },
+  },
+
+  watch: {
+    // alarmId(newValue, oldValue) {
+    //   console.log(`watch: alarm id oldValue = ${oldValue}, newValue = ${newValue}`);
+    // },
+    environmentSensors(newValue, oldValue) {
+      console.log(`watch: environmentSensors oldValue = ${oldValue}, newValue = ${JSON.stringify(newValue)}`);
+      if (newValue !== null) {
+        this.showSensors();
+      }
+    },
+    doorSensors(newValue, oldValue) {
+      console.log(`watch: doorSensors oldValue = ${oldValue}, newValue = ${JSON.stringify(newValue)}`);
+      if (newValue !== null) {
+        this.showSensors();
+      }
+    },
+    motionSensors(newValue, oldValue) {
+      console.log(`watch: motionSensors oldValue = ${oldValue}, newValue = ${JSON.stringify(newValue)}`);
+      if (newValue !== null) {
+        this.showSensors();
+      }
+    },
+    activeTab(newValue, oldValue) {
+      console.log(`watch: activeTab oldValue = ${oldValue}, newValue = ${JSON.stringify(newValue)}`);
+      if (newValue !== null) {
+        this.showSensors();
+      }
     },
   },
 
@@ -277,66 +495,255 @@ export default {
       localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
     },
 
-    async discoverDevice() {
-      navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-      })
-        .then((device) => { this.newDevice = device.name; })
-        .catch((error) => { console.error(error); });
-    },
-
-    getAlarmSystems() {
-      this.alarmSystems = null;
-      fetch('http://interactivehome.ddns.net:8080/alarm_system')
-        .then(async (response) => {
-          const data = await response.json();
-
-          // check for error response
-          if (!response.ok) {
-            // get error message from body or default to response statusText
-            const error = (data && data.message) || response.statusText;
-            alert(error);
+    setDeviceCharacteristicValue() {
+      let deviceIdArrBuff;
+      this.commandService.getCharacteristic(this.deviceCharacteristicUuid)
+        .then((characteristic) => {
+          console.log('Found write characteristic: ', characteristic);
+          this.writeCharacteristic = characteristic;
+          const strDeviceId = this.deviceId.toString();
+          const deviceIdLen = new ArrayBuffer(strDeviceId.length);
+          deviceIdArrBuff = new Uint8Array(deviceIdLen);
+          for (let i = 0; i < strDeviceId.length; i += 1) {
+            deviceIdArrBuff[i] = strDeviceId.charCodeAt(i);
           }
-
-          this.alarmSystems = data;
-        })
-        .then(() => {
-          this.setActiveAlarm();
-          this.storeActiveAlarm();
-          this.getSensors(this.activeTab, true);
-        })
-        .catch((error) => {
-          this.errorMessage = error;
-          console.error('There was an error!', error);
+          this.writeCharacteristic.writeValue(deviceIdArrBuff);
+        // })
+        // .catch((error) => {
+        //   console.log('DOMException: GATT operation already in progress.', error);
+        //   return Promise.resolve()
+        //     .then(() => {
+        //       setTimeout(() => {
+        //       }, 500);
+        //     })
+        //     .then(() => {
+        //       this.writeCharacteristic.writeValue(deviceIdArrBuff);
+        //     });
         });
     },
 
-    setActiveAlarm() {
+    setAlarmCharacteristicValue() {
+      let alarmIdArrBuff;
+      this.commandService.getCharacteristic(this.alarmCharacteristicUuid)
+        .then((characteristic) => {
+          console.log('Found write characteristic: ', characteristic);
+          this.writeCharacteristic = characteristic;
+          console.log(this.alarmId);
+          const strAlarmId = this.alarmId.toString();
+          const alarmIdLen = new ArrayBuffer(strAlarmId.length);
+          alarmIdArrBuff = new Uint8Array(alarmIdLen);
+          for (let i = 0; i < strAlarmId.length; i += 1) {
+            alarmIdArrBuff[i] = strAlarmId.charCodeAt(i);
+          }
+          this.writeCharacteristic.writeValue(alarmIdArrBuff);
+        // })
+        // .catch((error) => {
+        //   console.log('DOMException: GATT operation already in progress.', error);
+        //   return Promise.resolve()
+        //     .then(() => {
+        //       setTimeout(() => {
+        //       }, 500);
+        //     })
+        //     .then(() => {
+        //       this.writeCharacteristic.writeValue(alarmIdArrBuff);
+        //     });
+        });
+    },
+
+    setWifiCharacteristicValues() {
+      let ssidArrBuff;
+      this.commandService.getCharacteristic(this.wifiSsidCharacteristicUuid)
+        .then((characteristic) => {
+          console.log('Found write characteristic: ', characteristic);
+          this.writeCharacteristic = characteristic;
+          console.log(this.wifiSsid);
+          // eslint-disable-next-line max-len
+          // const wifiSsidBufferLen = new ArrayBuffer(this.wifiSsid.length * 2); // 2 bytes for each char (UTF16). For UTF32 should be *4
+          // ssidArrBuff = new Uint16Array(wifiSsidBufferLen);
+          const wifiSsidBufferLen = new ArrayBuffer(this.wifiSsid.length);
+          ssidArrBuff = new Uint8Array(wifiSsidBufferLen);
+          for (let i = 0; i < this.wifiSsid.length; i += 1) {
+            ssidArrBuff[i] = this.wifiSsid.charCodeAt(i);
+          }
+          this.writeCharacteristic.writeValue(ssidArrBuff)
+            .then(() => {
+              this.setWifiPasswordCharacteristicValue();
+            });
+        // })
+        // .catch((error) => {
+        //   console.log('DOMException: GATT operation already in progress.', error);
+        //   return Promise.resolve()
+        //     .then(() => {
+        //       setTimeout(() => {
+        //       }, 500);
+        //     })
+        //     .then(() => {
+        //       this.writeCharacteristic.writeValue(ssidArrBuff)
+        //         .then(this.setWifiPasswordCharacteristicValue());
+        //     });
+        });
+    },
+
+    setWifiPasswordCharacteristicValue() {
+      let wifiPasswordArrBuff;
+      this.commandService.getCharacteristic(this.wifiPasswordCharacteristicUuid)
+        .then((characteristic) => {
+          console.log('Found write characteristic: ', characteristic);
+          this.writeCharacteristic = characteristic;
+          console.log(this.wifiPassword);
+          const wifiPasswordBufferLen = new ArrayBuffer(this.wifiPassword.length);
+          wifiPasswordArrBuff = new Uint8Array(wifiPasswordBufferLen);
+          for (let i = 0; i < this.wifiPassword.length; i += 1) {
+            wifiPasswordArrBuff[i] = this.wifiPassword.charCodeAt(i);
+          }
+          console.log(wifiPasswordArrBuff);
+          this.writeCharacteristic.writeValue(wifiPasswordArrBuff);
+        });
+      // .catch((error) => {
+      //   console.log('DOMException: GATT operation already in progress.', error);
+      //   return Promise.resolve()
+      //     .then(() => {
+      //       setTimeout(() => {
+      //       }, 500);
+      //     })
+      //     .then(() => {
+      //       this.writeCharacteristic.writeValue(wifiPasswordArrBuff);
+      //     });
+      // });
+    },
+
+    async findNewSensor() {
+      if (this.gattServer != null && this.gattServer.connected) {
+        if (this.gattServer.disconnect) {
+          console.log('Disconnecting...');
+          this.gattServer.disconnect();
+          this.expandNewSensor = false;
+        }
+      } else {
+        console.log('Connecting...');
+        if (this.writeCharacteristic == null) {
+          console.log('Requesting device with service 2714f485-9888-46b8-a119-98586cb867a3');
+          navigator.bluetooth.requestDevice({
+            filters: [
+              // { services: ['heart_rate'] },
+              // { services: [0x1802, 0x1803] },
+              // { services: ['2714f485-9888-46b8-a119-98586cb867a3'] },
+              // { name: 'SmartHome New Sensor' },
+              { namePrefix: 'SmartHome' },
+            ],
+            optionalServices: ['2714f485-9888-46b8-a119-98586cb867a3'],
+          })
+            .then((device) => {
+              this.expandNewSensor = true;
+              console.log('Device connected: ', device);
+              console.log('Connecting to GATT Server...');
+              return device.gatt.connect();
+            })
+            .then((server) => {
+              console.log('> Found GATT server: ', server);
+              this.gattServer = server;
+              // Get command service
+              return this.gattServer.getPrimaryService('2714f485-9888-46b8-a119-98586cb867a3');
+            })
+            .then((service) => {
+              console.log('> Found command service: ', service);
+              this.commandService = service;
+              this.setAlarmCharacteristicValue();
+            })
+            .catch((error) => {
+              console.error('Error: ', error);
+            });
+        }
+      }
+    },
+
+    getAlarmSystems() {
+      this.setActiveAlarmId();
+      this.storeActiveAlarmId();
+      this.getSensors();
+    },
+
+    onChangeActiveAlarm(alarmId) {
+      this.$store.commit('setAlarmId', alarmId);
+      console.log(`onChangeActiveAlarm: ${alarmId}`);
+      this.getSensors();
+      this.showSensors();
+    },
+
+    onTabChange(tab) {
+      this.activeTab = tab;
+    },
+
+    showSensors() {
+      switch (this.activeTab) {
+        case 'environment_sensor':
+          this.sensors = this.environmentSensors;
+          break;
+        case 'door_sensor':
+          this.sensors = this.doorSensors;
+          break;
+        case 'motion_sensor':
+          this.sensors = this.motionSensors;
+          break;
+        default:
+          break;
+      }
+    },
+
+    setActiveAlarmId() {
       let i = 0; // The alarm Ids start from 1
       for (; i < this.alarmSystems.length; i += 1) {
         if (this.alarmId === this.alarmSystems[i].id) {
           // The radio button is zero-based, the alarm_id starts from 1
-          this.activeAlarmGroup = this.alarmId - 1;
+          this.activeAlarmId = this.alarmId;
           break;
         }
       }
     },
 
-    storeActiveAlarm() {
-      const activeAlarm = this.activeAlarmGroup + 1;
-      localStorage.removeItem('activeAlarm');
-      localStorage.setItem('activeAlarm', activeAlarm);
-      this.$store.commit('storeActiveAlarm', activeAlarm);
-      this.getSensors(this.activeTab, true);
+    storeActiveAlarmId() {
+      localStorage.removeItem('alarmId');
+      localStorage.setItem('alarmId', this.activeAlarmId);
+      this.$store.commit('setAlarmId', this.activeAlarmId);
+      this.getSensors();
     },
 
-    getSensors(tab, forceRefresh) {
-      if (tab === this.activeTab && !forceRefresh) { return; }
+    undoAlarmChanges() {
+      this.getSensors();
+    },
 
-      this.sensors = null;
-      this.activeTab = tab;
-      const aId = parseInt(this.alarmId, 10);
-      fetch(`http://interactivehome.ddns.net:8080/${tab}?alarmId=${aId}`)
+    saveAlarmChanges(editedAlarm) {
+      // eslint-disable-next-line no-restricted-globals
+      if (!confirm('Are you sure you want to update this sensor?')) { return; }
+
+      const requestBody = {
+        description: editedAlarm.description,
+      };
+
+      fetch(`http://interactivehome.ddns.net:8080/${editedAlarm.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        })
+        .then(async (response) => {
+          const data = await response.json();
+
+          // check for error response
+          if (!response.ok) {
+          // get error message from body or default to response statusText
+            const error = (data && data.message) || response.statusText;
+            alert(error);
+          }
+        })
+        .then(this.getSensors());
+    },
+
+    getSensors() {
+      console.log(`getSensors: ${this.alarmId}`);
+      fetch(`http://interactivehome.ddns.net:8080/environment_sensor?alarmId=${this.alarmId}`)
         .then(async (response) => {
           const data = await response.json();
 
@@ -347,16 +754,90 @@ export default {
             alert(error);
           }
 
-          this.sensors = data;
+          this.$store.commit('setEnvironmentSensors', data);
         })
         .catch((error) => {
           this.errorMessage = error;
           console.error('There was an error!', error);
         });
+
+      fetch(`http://interactivehome.ddns.net:8080/door_sensor?alarmId=${this.alarmId}`)
+        .then(async (response) => {
+          const data = await response.json();
+
+          // check for error response
+          if (!response.ok) {
+            // get error message from body or default to response statusText
+            const error = (data && data.message) || response.statusText;
+            alert(error);
+          }
+
+          this.$store.commit('setDoorSensors', data);
+        })
+        .catch((error) => {
+          this.errorMessage = error;
+          console.error('There was an error!', error);
+        });
+
+      fetch(`http://interactivehome.ddns.net:8080/motion_sensor?alarmId=${this.alarmId}`)
+        .then(async (response) => {
+          const data = await response.json();
+
+          // check for error response
+          if (!response.ok) {
+            // get error message from body or default to response statusText
+            const error = (data && data.message) || response.statusText;
+            alert(error);
+          }
+
+          this.$store.commit('setMotionSensors', data);
+        })
+        .catch((error) => {
+          this.errorMessage = error;
+          console.error('There was an error!', error);
+        });
+
+      /*
+      fetch(`http://interactivehome.ddns.net:8080/window_sensor?alarmId=${this.alarmId}`)
+        .then(async (response) => {
+          const data = await response.json();
+
+          // check for error response
+          if (!response.ok) {
+            // get error message from body or default to response statusText
+            const error = (data && data.message) || response.statusText;
+            alert(error);
+          }
+
+          this.$store.commit('setWindowSensors', data);
+        })
+        .catch((error) => {
+          this.errorMessage = error;
+          console.error('There was an error!', error);
+        });
+
+      fetch(`http://interactivehome.ddns.net:8080/sound_sensor?alarmId=${this.alarmId}`)
+        .then(async (response) => {
+          const data = await response.json();
+
+          // check for error response
+          if (!response.ok) {
+            // get error message from body or default to response statusText
+            const error = (data && data.message) || response.statusText;
+            alert(error);
+          }
+
+          this.$store.commit('setSoundSensors', data);
+        })
+        .catch((error) => {
+          this.errorMessage = error;
+          console.error('There was an error!', error);
+        });
+        */
     },
 
     undoChanges() {
-      this.getSensors(this.activeTab, true);
+      this.getSensors();
     },
 
     saveChanges(editedSensor) {
@@ -391,17 +872,62 @@ export default {
             alert(error);
           }
         })
-        .then(this.getSensors(this.activeTab, true));
+        .then(this.getSensors(true));
     },
 
     deleteSensor(id) {
       // eslint-disable-next-line no-restricted-globals
-      if (!confirm('Are you sure you want to delete this sensor?')) { return; }
+      if (!confirm(`Are you sure you want to delete sensor with id ${id}?`)) { return; }
 
       fetch(
         `http://interactivehome.ddns.net:8080/${this.activeTab}/${id}?alarmId=${this.alarmId}`,
         { method: 'delete' },
       )
+        .then(async (response) => {
+          const data = await response;
+          // check for error response
+          if (!data.ok) {
+          // get error message from body or default to response statusText
+            const error = (data && data.message) || data.statusText;
+            alert(error);
+          } else {
+            const sensors = this.environmentSensors;
+            for (let i = 0; i < sensors.length; i += 1) {
+              if (sensors[i].id === id) {
+                sensors.splice(i, 1);
+                this.$store.commit('setEnvironmentSensors', sensors);
+              }
+            }
+          }
+        });
+    },
+
+    registerSensor(sensor) {
+      console.log(sensor);
+      if (this.wifiSsid === null || this.wifiPassword === null
+           || !this.wifiSsid.length || !this.wifiPassword.length) {
+        alert('Please fill in all mandatory fields for the new Sensor');
+        return;
+      }
+      this.setWifiCharacteristicValues();
+      const requestBody = {
+        description: sensor.description,
+        device_identifier: sensor.device_identifier,
+        enabled: sensor.enabled,
+        battery_powered: sensor.battery_powered,
+        trigger_verification_process: sensor.trigger_verification_process,
+        arm_in: sensor.arm_in,
+        arm_away: sensor.arm_away,
+      };
+
+      fetch(`http://interactivehome.ddns.net:8080/${this.activeTab}?alarmId=${this.alarmId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        })
         .then(async (response) => {
           const data = await response.json();
 
@@ -411,65 +937,28 @@ export default {
             const error = (data && data.message) || response.statusText;
             alert(error);
           }
+          this.deviceId = data;
+          console.log('device id data: ', data);
+          console.log('DeviceId: ', this.deviceId);
+          this.setDeviceCharacteristicValue();
         })
-        .then(this.getSensors(this.activeTab, true));
-    },
-
-    onButtonClick() {
-      const filters = [];
-
-      const filterName = document.querySelector('#name').value;
-      if (filterName) {
-        filters.push({ name: filterName });
-      }
-
-      const filterNamePrefix = document.querySelector('#namePrefix').value;
-      if (filterNamePrefix) {
-        filters.push({ namePrefix: filterNamePrefix });
-      }
-
-      const options = {};
-      if (document.querySelector('#allAdvertisements').checked) {
-        options.acceptAllAdvertisements = true;
-      } else {
-        options.filters = filters;
-      }
-
-      try {
-        alert(`Requesting Bluetooth Scan with options: ${JSON.stringify(options)}`);
-        const scan = navigator.bluetooth.requestLEScan(options);
-
-        alert('Scan started with:');
-        alert(` acceptAllAdvertisements: ${scan.acceptAllAdvertisements}`);
-        alert(` active: ${scan.active}`);
-        alert(` keepRepeatedDevices: ${scan.keepRepeatedDevices}`);
-        alert(` filters: ${JSON.stringify(scan.filters)}`);
-
-        navigator.bluetooth.addEventListener('advertisementreceived', (event) => {
-          alert('Advertisement received.');
-          alert(`  Device Name: ${event.device.name}`);
-          alert(`  Device ID: ${event.device.id}`);
-          alert(`  RSSI: ${event.rssi}`);
-          alert(`  TX Power: ${event.txPower}`);
-          alert(`  UUIDs: ${event.uuids}`);
-          event.manufacturerData.forEach((valueDataView, key) => {
-            alert(`Manufacturer ${key} ${valueDataView}`);
-          });
-          event.serviceData.forEach((valueDataView, key) => {
-            alert(`Service ${key} ${valueDataView}`);
-          });
+        .then(() => {
+          this.expandNewSensor = false;
+          this.newSensor.id = this.deviceId;
+          this.newSensor.description = sensor.description;
+          this.newSensor.device_identifier = sensor.device_identifier;
+          this.newSensor.battery_powered = sensor.battery_powered;
+          this.newSensor.enabled = sensor.enabled;
+          this.newSensor.online = false;
+          this.newSensor.created_utc = sensor.created_utc;
+          this.newSensor.trigger_verification_process = sensor.trigger_verification_process;
+          this.newSensor.arm_in = sensor.arm_in;
+          this.newSensor.arm_away = sensor.arm_away;
+          const sensors = this.environmentSensors;
+          sensors.push(this.newSensor);
+          this.$store.commit('setEnvironmentSensors', sensors);
         });
-
-        stopScan() {
-          alert('Stopping scan...');
-          scan.stop();
-          alert(`Stopped.  scan.active = ${scan.active}`);
-        }
-      } catch (error) {
-        alert(`Argh! ${error}`);
-      }
     },
-
   },
 };
 </script>

@@ -39,9 +39,9 @@ public class EnvironmentSensor {
     @Field("created_utc")
     private Date createdUtc;
 
-    public void createEnvironmentSensorFromDto(Integer id, EnvironmentSensorDto dto) {
+    public void createEnvironmentSensorFromDto(Integer id, EnvironmentSensorDto dto, Integer alarmId) {
         _id = id;
-        alarmId = dto.alarmId;
+        this.alarmId = alarmId;
         enabled = dto.enabled;
         description = dto.description;
         deviceIdentifier = dto.deviceIdentifier;

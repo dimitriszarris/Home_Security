@@ -1,6 +1,7 @@
 package com.interactivehome.main_service.controller.events;
 
 import com.interactivehome.main_service.config.AppProperties;
+import com.interactivehome.main_service.model.common.dto.ResponseDto;
 import com.interactivehome.main_service.model.events.dto.AlarmSystemStateDto;
 import com.interactivehome.main_service.model.events.entity.AlarmSystemState;
 import com.interactivehome.main_service.service.events.AlarmSystemStateService;
@@ -50,10 +51,14 @@ public class AlarmSystemStateController {
   }
 
   @PostMapping("/alarm_system_state/{id}")
-  public ResponseEntity postAlarmStateById(@PathVariable Integer id,
-                                           @RequestBody AlarmSystemStateDto dto) {
+  public ResponseEntity<ResponseDto> postAlarmStateById(@PathVariable Integer id,
+                                                        @RequestBody AlarmSystemStateDto dto) {
     System.out.println("Got request for postAlarmState: " + dto.toString());
-    try {
+    alarmSystemStateService.saveAlarmStateById(id, dto);
+    ResponseDto responseDto = new ResponseDto();
+    responseDto.setSuccess(true);
+    return ResponseEntity.ok(responseDto);
+/*    try {
       HttpHeaders requestHeaders = new HttpHeaders();
       requestHeaders.setContentType(MediaType.APPLICATION_JSON);
       JSONObject jsonObject = new JSONObject();
@@ -98,6 +103,7 @@ public class AlarmSystemStateController {
       }
       return new ResponseEntity<>(payload, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+*/
   }
 
   @GetMapping("/alarm_system_state/{id}")

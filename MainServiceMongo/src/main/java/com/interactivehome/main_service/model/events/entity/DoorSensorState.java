@@ -6,6 +6,7 @@ import com.interactivehome.main_service.model.events.dto.DoorSensorStateDto;
 
 import java.util.Date;
 import lombok.Data;
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -16,7 +17,10 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public class DoorSensorState {
     @Id
     @Field("_id")
-    private Integer _id;
+    private ObjectId _id;
+
+    @Field("sensor_id")
+    private Integer sensorId;
 
     @Field("alarm_id")
     private Integer alarmId;
@@ -28,7 +32,6 @@ public class DoorSensorState {
     private Date updatedUtc;
 
     public void mapFromDto(DoorSensorStateDto dto) {
-        alarmId = dto.alarmId;
         doorState = dto.doorState;
         updatedUtc = new Date(System.currentTimeMillis());
     }

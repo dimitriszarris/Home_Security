@@ -17,24 +17,28 @@ import org.springframework.stereotype.Service;
 @Service
 public class EnvironmentSensorStateServiceImpl implements EnvironmentSensorStateService {
   private final EnvironmentSensorStateRepository environmentSensorStateRepository;
+  private final EnvironmentSensorLastMeasurementsService environmentSensorLastMeasurementsService;
 
   private final MongoTemplate mongoTemplate;
 
   public EnvironmentSensorStateServiceImpl(EnvironmentSensorStateRepository environmentSensorStateRepository,
-                                           MongoTemplate mongoTemplate) {
+                                           EnvironmentSensorLastMeasurementsService environmentSensorLastMeasurementsService, MongoTemplate mongoTemplate) {
     this.environmentSensorStateRepository = environmentSensorStateRepository;
+    this.environmentSensorLastMeasurementsService = environmentSensorLastMeasurementsService;
     this.mongoTemplate = mongoTemplate;
   }
 
   @Override
-  public void saveValuesBySensorId(Integer id, EnvironmentSensorStateDto dto) {
+  public void saveValuesBySensorId(Integer id, Integer alarmId, EnvironmentSensorStateDto dto) {
     EnvironmentSensorState environmentSensorState = new EnvironmentSensorState();
     environmentSensorState.mapFromDto(id, dto);
-    environmentSensorStateRepository.save(environmentSensorState);
+    environmentSensorState.setAlarmId(alarmId);
+    environmentSensorStateRepository.insert(environmentSensorState);
+    environmentSensorLastMeasurementsService.saveLastMeasurements(alarmId, id, environmentSensorState);
   }
 
   @Override
-  public List<EnvironmentSensorState> getValuesByAlarmIdAndSensorIdFromDateToDate(
+  public List<EnvironmentSensorStateDto> getValuesByAlarmIdAndSensorIdFromDateToDate(
                                           Integer alarmId, Integer sensorId, Date fromDate, Date toDate) {
     if(fromDate != null && !fromDate.toString().isEmpty() && (toDate == null || toDate.toString().isEmpty()))
       toDate = java.util.Date.from(LocalDate.now().atStartOfDay().plusDays(1)
@@ -49,17 +53,19 @@ public class EnvironmentSensorStateServiceImpl implements EnvironmentSensorState
 
     Query query = new Query();
     query.addCriteria(Criteria.where("alarm_id").is(alarmId));
-    query.addCriteria(Criteria.where("_id").is(sensorId));
+    query.addCriteria(Criteria.where("sensor_id").is(sensorId));
     if((fromDate != null && toDate != null) && (!fromDate.toString().isEmpty() && !toDate.toString().isEmpty())) {
       query.addCriteria(Criteria.where("updated_utc").gte(fromDate).lte(toDate));
-      query.with(new org.springframework.data.domain.Sort(Direction.DESC, "updated_utc"));
-      return mongoTemplate.find(query, EnvironmentSensorState.class);
+      // query.with(new org.springframework.data.domain.Sort(Direction.DESC, "updated_utc"));
     }
     // If the dates are not present then get the sensors measurements
-    query.with(new org.springframework.data.domain.Sort(Direction.DESC, "updated_utc"));
-    List<EnvironmentSensorState> environmentSensorStateList = new ArrayList<>();
-    if(mongoTemplate.find(query, EnvironmentSensorState.class).size() > 0)
-      environmentSensorStateList.add(mongoTemplate.find(query, EnvironmentSensorState.class).get(0));
-    return environmentSensorStateList;
+    // query.with(new org.springframework.data.domain.Sort(Direction.DESC, "updated_utc"));
+    List<EnvironmentSensorState> environmentSensorStateList;
+    environmentSensorStateList = mongoTemplate.find(query, EnvironmentSensorState.class);
+    List<EnvironmentSensorStateDto> dtoList = new ArrayList<>();
+    for (EnvironmentSensorState environmentSensorState : environmentSensorStateList) {
+      dtoList.add(environmentSensorState.mapToDto());
+    }
+    return dtoList;
   }
 }

@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <!-- <v-container>
     <v-row>
       <v-col
         cols="4"
@@ -74,98 +74,100 @@
           ></v-select>
         </v-col>
       </v-row>
-    </v-row>
-    <v-row>
-      <v-col cols="12">
-        <v-card>
-          <div class="subheading font-weight-light grey--text">
-              Temperature
-          </div>
-          <v-sheet
-          elevation="5"
-          >
-          <v-sparkline
-              :labels="labels"
-              :value="value1"
-              color="orange"
-              line-width=".5"
-              padding="16"
-          ></v-sparkline>
-          </v-sheet>
-          <v-divider class="my-2"></v-divider>
-
-          <div class="subheading font-weight-light grey--text">
-              Humidity
-          </div>
-          <v-sheet
-          elevation="5"
-          >
-          <v-sparkline
-              :labels="labels"
-              :value="value2"
-              color="cyan"
-              line-width=".5"
-              padding="16"
-          ></v-sparkline>
-          </v-sheet>
-
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
+    </v-row> -->
+    <div>
+      <apexchart type="line" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+  <!-- </v-container> -->
 </template>
 
 <script>
+// import chartData from '../data/data.json';
+import VueApexCharts from 'vue-apexcharts';
+
 export default {
-  data: (vm) => ({
-    dialog: true,
-    username: null,
-    password: null,
-    dateFrom: new Date().toISOString().substr(0, 10),
-    dateTo: new Date().toISOString().substr(0, 10),
-    fromDateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-    toDateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-    menuFromDate: false,
-    menuToDate: false,
-    menuFrom: false,
-    menuTo: false,
-    fromTime: null,
-    toTime: null,
-    menuFromTime: false,
-    menuToTime: false,
-    doorSensors: ['Environment', 'Door', 'Motion', 'Camera'],
-    sensorDescription: ['Main Entrance', 'Entrance', 'Window', 'Kitchen'],
-    labels: [
-      '12am',
-      '3am',
-      '6am',
-      '9am',
-      '12pm',
-      '3pm',
-      '6pm',
-      '9pm',
+  components: {
+    apexchart: VueApexCharts,
+  },
+  data: () => ({
+    // dialog: true,
+    // dateFrom: new Date().toISOString().substr(0, 10),
+    // dateTo: new Date().toISOString().substr(0, 10),
+    // fromDateFormatted: this.formatDate(new Date().toISOString().substr(0, 10)),
+    // toDateFormatted: this.formatDate(new Date().toISOString().substr(0, 10)),
+    // menuFromDate: false,
+    // menuToDate: false,
+    // menuFrom: false,
+    // menuTo: false,
+    // fromTime: null,
+    // toTime: null,
+    // menuFromTime: false,
+    // menuToTime: false,
+    // doorSensors: ['Environment', 'Door', 'Motion', 'Camera'],
+    // sensorDescription: ['Main Entrance', 'Entrance', 'Window', 'Kitchen'],
+    temperatureData: [],
+    humidityData: [],
+    airData: [],
+    dateData: [],
+    series: [{
+      name: 'Temperature',
+      type: 'column',
+      data: [],
+    },
+    {
+      name: 'Humidity',
+      type: 'line',
+      data: [],
+    }, {
+      name: 'Air Quality',
+      type: 'area',
+      data: [],
+    },
     ],
-    value1: [
-      200,
-      675,
-      410,
-      390,
-      310,
-      460,
-      250,
-      240,
-    ],
-    value2: [
-      10,
-      8,
-      7,
-      6,
-      5,
-      7,
-      11,
-      15,
-    ],
+    chartOptions: {
+      chart: {
+        height: 350,
+        type: 'line',
+      },
+      stroke: {
+        width: [0],
+      },
+      title: {
+        text: 'Environment Sensors',
+      },
+      dataLabels: {
+        enabled: true,
+        enabledOnSeries: [0, 1, 2],
+      },
+      labels: [],
+      xaxis: {
+        type: 'time',
+      },
+      yaxis: [{
+        title: {
+          text: 'Temperature',
+        },
+
+      },
+      {
+        opposite: true,
+        title: {
+          text: 'Humidity',
+        },
+      },
+      {
+        opposite: true,
+        title: {
+          text: 'Air Quality',
+        },
+      },
+      ],
+    },
   }),
+
+  created() {
+    this.fetchSensorsData();
+  },
 
   computed: {
     computedDateFormatted() {
@@ -174,11 +176,21 @@ export default {
     loggedIn() {
       return this.$store.state.loggedIn;
     },
+    alarmId() {
+      return this.$store.state.alarmId;
+    },
   },
 
   watch: {
     date(val) {
       this.dateFormatted = this.formatDate(val);
+    },
+    alarmId(newValue, oldValue) {
+      // eslint-disable-next-line max-len
+      // console.log(`watch: environmentSensors oldValue = ${oldValue}, newValue = ${JSON.stringify(newValue)}`);
+      if (newValue !== oldValue) {
+        this.fetchSensorsData();
+      }
     },
   },
 
@@ -194,6 +206,48 @@ export default {
 
       const [month, day, year] = date.split('-');
       return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    },
+    updateChart() {
+      const newSeries = this.series;
+      newSeries[0].data = {
+        data: this.temperatureData,
+      };
+      newSeries[1] = {
+        data: this.humidityData,
+      };
+
+      this.series = [{
+        data: this.temperatureData,
+      }];
+      console.log(`dates: ${this.dateData}`);
+
+      this.chartOptions = {
+        labels: this.dateData,
+      };
+    },
+    fetchSensorsData() {
+      if (this.alarmId === null) {
+        return;
+      }
+      this.$store.dispatch('getSensorsValues')
+        .then(async (response) => {
+          const data = await response;
+          this.temperatureData = [];
+          this.humidityData = [];
+          this.airData = [];
+          this.series[0].data = [];
+          for (let i = data.length - 12; i < data.length; i += 1) {
+            console.log(`data[i]: ${JSON.stringify(data[i])}`);
+            this.temperatureData.push(data[i].temperature.toFixed(1));
+            this.humidityData.push(data[i].humidity.toFixed(0));
+            this.airData.push(data[i].gas_value.toFixed(0));
+            const date = new Date(data[i].updated_utc).toLocaleTimeString();
+
+            this.dateData.push(date);
+          }
+          console.log(`data: ${this.temperatureData}`);
+          this.updateChart();
+        });
     },
   },
 };

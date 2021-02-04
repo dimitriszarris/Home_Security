@@ -17,8 +17,9 @@ public class DoorSensorController {
     }
 
     @PostMapping("/door_sensor")
-    public void registerDoorSensor(@RequestBody DoorSensorDto dto) {
-        doorSensorService.registerDoorSensor(dto);
+    public void registerDoorSensor(@RequestBody DoorSensorDto dto,
+                                   @RequestParam(value = "alarmId") Integer alarmId) {
+        doorSensorService.registerDoorSensor(dto, alarmId);
     }
 
     @PutMapping("/door_sensor/{id}")

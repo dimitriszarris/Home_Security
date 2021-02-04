@@ -7,6 +7,6 @@ import java.util.List;
 
 
 public interface BatteryStateService {
-  void saveVoltageBySensorId(Integer id, BatteryStateDto dto);
+  void saveVoltageBySensorId(Integer id, Integer alarmId, BatteryStateDto dto);
   List<BatteryState> getVoltageByAlarmIdAndSensorIdFromDateToDate(Integer alarmId, Integer sensorId, Date fromDate, Date toDate);
 }

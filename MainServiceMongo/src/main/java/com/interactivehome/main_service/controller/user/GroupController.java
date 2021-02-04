@@ -2,6 +2,7 @@ package com.interactivehome.main_service.controller.user;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interactivehome.main_service.model.common.dto.ResponseDto;
 import com.interactivehome.main_service.model.user.dto.GroupDto;
 import com.interactivehome.main_service.model.user.entity.Group;
 import com.interactivehome.main_service.service.user.GroupService;
@@ -21,18 +22,12 @@ public class GroupController {
     }
 
     @PostMapping("/group")
-    public ResponseEntity<String> CreateGroup(@RequestBody GroupDto dto) {
+    public ResponseEntity<ResponseDto> CreateGroup(@RequestBody GroupDto dto) {
         groupService.createGroup(dto);
-        String body = "";
-        try {
-            ObjectMapper map = new ObjectMapper();
-            body = map.writeValueAsString(dto);
-        } catch (JsonProcessingException e) {
-            System.out.println("Json Processing Exception: " + e.getMessage());
-            return (ResponseEntity<String>) ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
 
-        return ResponseEntity.ok(body);
+        ResponseDto responseDto = new ResponseDto();
+        responseDto.setSuccess(true);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 
     @GetMapping("/group/{id}")

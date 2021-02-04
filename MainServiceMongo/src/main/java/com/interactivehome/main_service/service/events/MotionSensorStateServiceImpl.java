@@ -27,9 +27,10 @@ public class MotionSensorStateServiceImpl implements MotionSensorStateService {
   }
 
   @Override
-  public void saveStateBySensorId(Integer id, MotionSensorStateDto dto) {
+  public void saveStateBySensorId(Integer id, Integer alarmId, MotionSensorStateDto dto) {
     MotionSensorState motionSensorState = new MotionSensorState();
     motionSensorState.mapFromDto(id, dto);
+    motionSensorState.setAlarmId(alarmId);
     mongoTemplate.save(motionSensorState);
 
     // If a movement is caught and the alarm is armed, then buzz the alarm
@@ -57,7 +58,7 @@ public class MotionSensorStateServiceImpl implements MotionSensorStateService {
 
     Query query = new Query();
     query.addCriteria(Criteria.where("alarm_id").is(alarmId));
-    query.addCriteria(Criteria.where("_id").is(sensorId));
+    query.addCriteria(Criteria.where("sensor_id").is(sensorId));
     if((fromDate != null && toDate != null) && (!fromDate.toString().isEmpty() && !toDate.toString().isEmpty())) {
       query.addCriteria(Criteria.where("updated_utc").gte(fromDate).lte(toDate));
       query.with(new Sort(Direction.DESC, "updated_utc"));

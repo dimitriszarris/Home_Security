@@ -26,9 +26,10 @@ public class BatteryStateServiceImpl implements BatteryStateService {
   }
 
   @Override
-  public void saveVoltageBySensorId(Integer id, BatteryStateDto dto) {
+  public void saveVoltageBySensorId(Integer id, Integer alarmId, BatteryStateDto dto) {
     BatteryState batteryState = new BatteryState();
     batteryState.mapFromDto(id, dto);
+    batteryState.setAlarmId(alarmId);
     batteryStateRepository.save(batteryState);
   }
 
@@ -48,7 +49,7 @@ public class BatteryStateServiceImpl implements BatteryStateService {
 
     Query query = new Query();
     query.addCriteria(Criteria.where("alarm_id").is(alarmId));
-    query.addCriteria(Criteria.where("_id").is(sensorId));
+    query.addCriteria(Criteria.where("sensor_id").is(sensorId));
     if((fromDate != null && toDate != null) && (!fromDate.toString().isEmpty() && !toDate.toString().isEmpty())) {
       query.addCriteria(Criteria.where("updated_utc").gte(fromDate).lte(toDate));
       query.with(new org.springframework.data.domain.Sort(Direction.DESC, "updated_utc"));

@@ -1,313 +1,159 @@
+/* eslint-disable max-len */
 <template>
   <v-container fluid>
-    <v-tabs v-model="tab" align-with-title>
+    <v-tabs align-with-title>
       <v-tabs-slider color="grey"></v-tabs-slider>
-      <v-tab @click="getSensorsValues('environment_sensor_state', false)">Environment</v-tab>
-      <v-tab @click="getSensorsValues('door_sensor_state', false)">Door</v-tab>
-      <v-tab @click="getSensorsValues('movement_sensor_state', false)">Motion</v-tab>
+      <v-tab @click="onTabChange(environmentSensors, 'environment_sensor_state')">
+        Environment
+      </v-tab>
+      <v-tab @click="onTabChange(doorSensors, 'door_sensor_state')">Door</v-tab>
+      <v-tab @click="onTabChange(motionSensors, 'motion_sensor_state')">Motion</v-tab>
     </v-tabs>
-    <v-row>
-      <v-col>
-        <v-card
-          height="100%"
-          >
-            <v-card-title class="justify-center">
-              <h2>
-                Kitchen Sensors
-              </h2>
-            </v-card-title>
-        </v-card>
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="6" lg="3" md="4" sm="12" xs="12">
-        <v-card
-          elevation="4">
-          <v-card-title class="justify-center">
-            Temp (&#176;C)
-            <v-card-text v-if="temperature != null">
-              <div class="d-flex flex-column justify-space-between align-center">
-                <v-progress-circular class="temperature-progress"
-                  :rotate="180"
-                  :size="170"
-                  :width="50"
-                  min="-40"
-                  max="40"
-                  :value="temperature"
-                >
-                  {{ temperature }}
-                </v-progress-circular>
-              </div>
-            </v-card-text>
-            <v-card-text v-else>
-              <div class="d-flex flex-column justify-space-between align-center">
-                <v-progress-circular
-                  :size="70"
-                  :width="7"
-                  color="grey"
-                  indeterminate
-                ></v-progress-circular>
-              </div>
-            </v-card-text>
-          </v-card-title>
-        </v-card>
-      </v-col>
-      <v-col cols="6" lg="3" md="4" sm="12" xs="12">
-        <v-card
-          elevation="4">
-          <v-card-title class="justify-center">
-            Humidity
-            <v-card-text v-if="humidity != null">
-              <div class="d-flex flex-column justify-space-between align-center">
-                <v-progress-circular class="humidity-progress"
-                  :rotate="180"
-                  :size="170"
-                  :width="50"
-                  :value="humidity"
-                >
-                  {{ humidity }}%
-                </v-progress-circular>
-              </div>
-            </v-card-text>
-            <v-card-text v-else>
-              <div class="d-flex flex-column justify-space-between align-center">
-                <v-progress-circular
-                  :size="70"
-                  :width="7"
-                  color="grey"
-                  indeterminate
-                ></v-progress-circular>
-              </div>
-            </v-card-text>
-          </v-card-title>
-        </v-card>
-      </v-col>
-      <v-col cols="6" lg="3" md="4" sm="12" x="12">
-        <v-card
-          elevation="4">
-          <v-card-title class="justify-center">
-            Air
-            <v-card-text v-if="air != null">
-              <div class="d-flex flex-column justify-space-between align-center">
-                <v-progress-circular class="air-progress"
-                  :rotate="180"
-                  :size="170"
-                  :width="50"
-                  :value="airPercent"
-                  :min="150"
-                  :max="800"
-                >
-                  {{ air }}
-                </v-progress-circular>
-              </div>
-            </v-card-text>
-            <v-card-text v-else>
-              <div class="d-flex flex-column justify-space-between align-center">
-                <v-progress-circular
-                  :size="70"
-                  :width="7"
-                  color="grey"
-                  indeterminate
-                ></v-progress-circular>
-              </div>
-            </v-card-text>
-          </v-card-title>
-        </v-card>
-      </v-col>
-    </v-row>
-    <!-- <v-row>
-      <v-col>
-        <v-card
-            class=""
-        elevation="4"
-            max-width="200"
-          >
-            <v-card-text>
-              Find new sensor
-            </v-card-text>
-            <v-card-actions>
-              <v-btn @click="discoverDevice()"
-                color="darkgrey"
-              >
-                <v-icon color="blue">mdi-access-point-network</v-icon>
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="12">
-        <v-card class="title"
-          height="100%"
-          >
-            <v-card-title class="title-text justify-center">
-              Sensors
-            </v-card-title>
-        </v-card>
-      </v-col>
-    </v-row>
-    <v-tabs v-model="tab" align-with-title>
-      <v-tabs-slider color="grey"></v-tabs-slider>
-      <v-tab @click="getSensors('environment_sensor', false)">Environment</v-tab>
-      <v-tab @click="getSensors('door_sensor', false)">Door</v-tab>
-      <v-tab @click="getSensors('movement_sensor', false)">Motion</v-tab>
-    </v-tabs>
-    <v-row v-for="(sensor, index) of sensors" :key="index">
-      <v-col>
-        <v-card id="sensor" class="sensor-values">
-          <v-row justify="end">
-            <v-col>
-              <v-tooltip top>
-                <template v-slot:activator="{ on }">
-                  <v-icon
-                    color="blue"
-                    v-on="on"
-                  >mdi-access-point-network</v-icon>
-                </template>
-                <span>Sensor is Online</span>
-              </v-tooltip>
-            </v-col>
-          </v-row>
-          <v-row>
+    <div v-if="alarmId != null">
+      <div v-for="sensorValues of sensorsValues" :key="sensorValues.id">
+        <v-row>
           <v-col>
-            <v-text-field
-              label="Sensor Id"
-              class="text-field"
-              readonly
-              dense
-              disabled
-              :value="sensor.sensor_id"
-            ></v-text-field>
-            <v-text-field
-              label="Created (UTC)"
-              class="text-field"
-              readonly
-              dense
-              disabled
-              :value="Date(sensor.created_utc).toString()"
-            ></v-text-field>
-            <v-text-field
-              label="Description"
-              class="text-field"
-              maxlength="30"
-              dense
-              :value="sensor.description"
-              v-model="sensor.description"
-            ></v-text-field>
-            <v-text-field
-              label="Device Identifier"
-              class="text-field"
-              maxlength="30"
-              dense
-              :value="sensor.device_identifier"
-              v-model="sensor.device_identifier"
-            ></v-text-field>
-            <v-switch
-              label="Enabled"
-              v-model="sensor.enabled"
-              dense
-              reverse
-              class="vswitch"
-              :checked="sensor.enabled">
-            </v-switch>
-            <v-switch
-              label="Battery Powered"
-              v-model="sensor.battery_powered"
-              dense
-              class="vswitch"
-              :checked="sensor.battery_powered">
-            </v-switch>
-            <v-switch v-if="activeTab == 'door_sensors'"
-              label="Trigger verification process"
-              v-model="sensor.trigger_verification_process"
-              dense
-              reverse
-              class="vswitch"
-              :checked="sensor.trigger_verification_process">
-            </v-switch>
-            <v-tooltip top>
-              <template v-slot:activator="{ on }">
-                <v-switch
-                  v-on="on"
-                  label="Arm In"
-                  v-model="sensor.arm_in"
-                  dense
-                  reverse
-                  class="vswitch"
-                  :checked="sensor.arm_in">
-                </v-switch>
-              </template>
-              <span>Enable/Disable when Alarm is in 'Alarm In' state</span>
-            </v-tooltip>
-            <v-tooltip top>
-              <template v-slot:activator="{ on }">
-                <v-switch
-                  v-on="on"
-                  label="Arm Away"
-                  v-model="sensor.arm_away"
-                  dense
-                  reverse
-                  class="vswitch"
-                  :checked="sensor.arm_away">
-                </v-switch>
-              </template>
-              <span>Enable/Disable when Alarm is in 'Alarm In' state</span>
-            </v-tooltip>
+            <v-card
+              height="100%"
+              >
+                <v-card-title class="justify-center">
+                  <h2>
+                    {{sensorValues.description}}
+                  </h2>
+                </v-card-title>
+            </v-card>
           </v-col>
-          </v-row>
-          <v-row justify="end">
-            <v-tooltip top>
-              <template v-slot:activator="{ on, attrs }">
-                <v-card
-                  v-bind="attrs"
-                  v-on="on"
-                  class="card-button"
-                  elevation="4"
-                  @click="deleteSensor(sensor.alarm_id, sensor.sensor_id)">
-                  <div
-                  class="d-flex flex-column justify-space-between align-center">
-                    <v-img src="../assets/delete.png"/>
-                  </div>
-                </v-card>
-              </template>
-              <span>Delete Sensor</span>
-            </v-tooltip>
-            <v-tooltip top>
-              <template v-slot:activator="{ on, attrs }">
-                <v-card
-                  v-bind="attrs"
-                  v-on="on"
-                  class="card-button"
-                  elevation="4"
-                  @click="undoChanges()">
-                  <div
-                  class="d-flex flex-column justify-space-between align-center">
-                    <v-img src="../assets/cancel.png"/>
-                  </div>
-                </v-card>
-              </template>
-              <span>Undo Changes</span>
-            </v-tooltip>
-            <v-tooltip top>
-              <template v-slot:activator="{ on, attrs }">
-                <v-card
-                  v-bind="attrs"
-                  v-on="on"
-                  class="card-button"
-                  elevation="4"
-                  @click="saveChanges(sensor)">
-                  <div
-                  class="d-flex flex-column justify-space-between align-center">
-                    <v-img src="../assets/check.png"/>
-                  </div>
-                </v-card>
-              </template>
-              <span>Save Changes</span>
-            </v-tooltip>
-          </v-row>
-        </v-card>
-      </v-col>
-    </v-row> -->
+        </v-row>
+        <v-row>
+          <v-col xl3 lg4 md4 sm12 xs12>
+            <v-card
+              elevation="4">
+              <v-card-title class="justify-center">
+                Temp (&#176;C)
+              <!-- <v-card-text v-if="sensorValues.temperatureSeries != null &&
+               sensorValues.temperatureSeries[0] != null"> -->
+              <v-card-text v-if="sensorValues.temperature != null">
+                <div class="d-flex flex-column justify-space-between align-center">
+                  <v-progress-circular class="air-progress"
+                    :rotate="180"
+                    :size="170"
+                    :width="50"
+                    :value="sensorValues.temperature"
+                    :min="150"
+                    :max="800"
+                  >
+                    {{ sensorValues.temperature }}
+                  </v-progress-circular>
+                  <!-- <apexchart :options="chartOptions" :series="sensorValues.temperatureSeries">
+                  </apexchart> -->
+                </div>
+              </v-card-text>
+              <v-card-text v-else>
+                <div class="d-flex flex-column justify-space-between align-center">
+                  <v-progress-circular
+                    :size="170"
+                    :width="10"
+                    color="grey"
+                    indeterminate
+                  ></v-progress-circular>
+                </div>
+              </v-card-text>
+              </v-card-title>
+            </v-card>
+          </v-col>
+        <!-- <v-col cols="6" lg="4" md="4" sm="12" xs="12">
+          <v-card
+            elevation="4">
+            <v-card-title class="justify-center">
+              Temp (&#176;C)
+              <v-card-text v-if="sensor.temperatureSeries[0] != null">
+                <div class="d-flex flex-column justify-space-between align-center">
+                  <apexchart :options="chartOptions" :series="sensor.temperatureSeries">
+                  </apexchart>
+                </div>
+              </v-card-text>
+              <v-card-text v-else>
+                <div class="d-flex flex-column justify-space-between align-center">
+                  <v-progress-circular
+                    :size="70"
+                    :width="7"
+                    color="grey"
+                    indeterminate
+                  ></v-progress-circular>
+                </div>
+              </v-card-text>
+            </v-card-title>
+          </v-card>
+        </v-col> -->
+        <v-col xl3 lg4 md4 sm12 xs12>
+          <v-card
+            elevation="4">
+            <v-card-title class="justify-center">
+              Humidity
+              <v-card-text v-if="sensorValues.humidity != null">
+                <div class="d-flex flex-column justify-space-between align-center">
+                  <v-progress-circular class="air-progress"
+                    :rotate="180"
+                    :size="170"
+                    :width="50"
+                    :value="sensorValues.humidity"
+                    :min="150"
+                    :max="800"
+                  >
+                    {{ sensorValues.humidity }}
+                  </v-progress-circular>
+                  <!-- <apexchart :options="chartOptions" :series="sensor.humiditySeries">
+                  </apexchart> -->
+                </div>
+              </v-card-text>
+              <v-card-text v-else>
+                <div class="d-flex flex-column justify-space-between align-center">
+                  <v-progress-circular
+                    :size="170"
+                    :width="10"
+                    color="grey"
+                    indeterminate
+                  ></v-progress-circular>
+                </div>
+              </v-card-text>
+            </v-card-title>
+          </v-card>
+        </v-col>
+        <v-col xl3 lg4 md4 sm12 xs12>
+          <v-card
+            elevation="4">
+            <v-card-title class="justify-center">
+              Air
+              <v-card-text v-if="sensorValues.air != null">
+                <div class="d-flex flex-column justify-space-between align-center">
+                  <v-progress-circular class="air-progress"
+                    :rotate="180"
+                    :size="170"
+                    :width="50"
+                    :value="sensorValues.airPercent"
+                    :min="150"
+                    :max="800"
+                  >
+                    {{ sensorValues.air }}
+                  </v-progress-circular>
+                </div>
+              </v-card-text>
+              <v-card-text v-else>
+                <div class="d-flex flex-column justify-space-between align-center">
+                  <v-progress-circular
+                    :size="170"
+                    :width="10"
+                    color="grey"
+                    indeterminate
+                  ></v-progress-circular>
+                </div>
+              </v-card-text>
+            </v-card-title>
+          </v-card>
+        </v-col>
+        </v-row>
+      </div>
+    </div>
   </v-container>
 </template>
 
@@ -315,37 +161,95 @@
 
 export default {
   name: 'Sensors',
+
   data() {
     return {
-      newDevice: null,
-      activeTab: 'environment_sensor',
-      devices: [],
-      device_values: {
+      activeTab: 'environment_sensor_state',
+      environmentSensorValues: {
+        id: null,
+        description: null,
         temperature: null,
-        humidity: null,
+        temperatureSeries: [],
+        humiditySeries: [],
         pressure: null,
         altitude: null,
         air: null,
         airPercent: null,
       },
-      sensorHeaders: [
-        {
-          text: 'Sensor Id',
-          sortable: false,
-          value: 'sensor_id',
+      chartOptions: {
+        chart: {
+          type: 'radialBar',
+          offsetY: 0,
+          sparkline: {
+            enabled: true,
+          },
         },
-        { text: 'Description', value: 'description' },
-        { text: 'Identifier', value: 'device_identifier' },
-        { text: 'Battery Powered', value: 'battery_powered' },
-        { text: 'Enabled', value: 'enabled' },
-        { text: 'Created (UTC)', value: 'created_utc' },
-      ],
+        plotOptions: {
+          radialBar: {
+            startAngle: -90,
+            endAngle: 90,
+            track: {
+              // background: '#e7e7e7',
+              // strokeWidth: '97%',
+              margin: 0, // margin is in pixels
+              dropShadow: {
+                enabled: false,
+                top: 0,
+                left: 0,
+                color: '#999',
+                opacity: 1,
+                blur: 1,
+              },
+            },
+            dataLabels: {
+              name: {
+                show: false,
+              },
+              value: {
+                offsetY: 0,
+                fontSize: '22px',
+                color: '#2196F3',
+              },
+              total: {
+                show: true,
+                label: 'Total',
+                color: '#2196F3',
+              },
+            },
+          },
+        },
+        grid: {
+          padding: {
+            top: -10,
+          },
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shade: 'light',
+            shadeIntensity: 0.4,
+            inverseColors: false,
+            opacityFrom: 1,
+            opacityTo: 1,
+            stops: [0, 50, 53, 91],
+          },
+        },
+        labels: [/* 'Average Results' */],
+      },
+      sensorsData: [],
+      sensorDataLst: [],
       sensors: [],
+      sensorsValues: [],
+      sensorsIds: [],
     };
   },
 
-  async created() {
-    await this.getSensors(this.activeTab, true);
+  created() {
+    this.showSensors();
+    this.getSensorsValues();
+    setInterval(() => {
+      this.getSensorsValues();
+    }, 5000);
   },
 
   computed: {
@@ -353,66 +257,165 @@ export default {
       return this.$store.state.loggedIn;
     },
     alarmId() {
-      return this.$store.state.activeAlarm;
+      return this.$store.state.alarmId;
+    },
+    environmentSensors() {
+      return this.$store.state.environmentSensors;
+    },
+    environmentSensorsValues() {
+      return this.$store.state.environmentSensorsValues;
+    },
+    doorSensors() {
+      return this.$store.state.doorSensors;
+    },
+    motionSensors() {
+      return this.$store.state.motionSensors;
+    },
+  },
+
+  watch: {
+    // alarmId(newValue, oldValue) {
+    //   console.log(`watch: alarm id oldValue = ${oldValue}, newValue = ${newValue}`);
+    // },
+    environmentSensors(newValue, oldValue) {
+      // eslint-disable-next-line max-len
+      // console.log(`watch: environmentSensors oldValue = ${oldValue}, newValue = ${JSON.stringify(newValue)}`);
+      if (newValue !== oldValue) {
+        this.showSensors();
+      }
+    },
+    environmentSensorsValues(newValue, oldValue) {
+      // eslint-disable-next-line max-len
+      // console.log(`environmentSensorsValues \noldValue: ${JSON.stringify(oldValue)},\nnewValue: ${JSON.stringify(newValue)}`);
+      if (newValue !== oldValue && newValue !== null) {
+        // console.log(`environmentSensorsValues: ${JSON.stringify(newValue)}`);
+        // this.updateSensorsValues(newValue);
+      }
+    },
+    doorSensors(newValue, oldValue) {
+      // eslint-disable-next-line max-len
+      // console.log(`watch: doorSensors oldValue = ${oldValue}, newValue = ${JSON.stringify(newValue)}`);
+      if (newValue !== oldValue) {
+        this.showSensors();
+      }
+    },
+    motionSensors(newValue, oldValue) {
+      // eslint-disable-next-line max-len
+      // console.log(`watch: motionSensors oldValue = ${oldValue}, newValue = ${JSON.stringify(newValue)}`);
+      if (newValue !== oldValue) {
+        this.showSensors();
+      }
+    },
+    activeTab(newValue, oldValue) {
+      // eslint-disable-next-line max-len
+      // console.log(`watch: activeTab oldValue = ${oldValue}, newValue = ${JSON.stringify(newValue)}`);
+      if (newValue !== oldValue) {
+        this.showSensors();
+      }
     },
   },
 
   methods: {
 
+    onTabChange(sensorList, tab) {
+      this.sensors = sensorList;
+      this.activeTab = tab;
+    },
+
+    isSensorShown(id) {
+      for (let i = 0; i < this.sensors.length
+       && this.sensorsValues != null
+       && i < this.sensorsValues.length; i += 1) {
+        if (this.sensorsValues[i].id === id) {
+          console.log(`sensor shown: ${id}`);
+          return true;
+        }
+      }
+      console.log(`sensor not shown: ${id}`);
+      return false;
+    },
+
+    showSensors() {
+      switch (this.activeTab) {
+        case 'environment_sensor_state':
+          this.sensors = this.environmentSensors;
+          this.sensorsIds = [];
+          for (let i = 0; i < this.sensors.length; i += 1) {
+            this.environmentSensorValues.id = this.sensors[i].id;
+            this.sensorsIds.push(this.sensors[i].id);
+            this.environmentSensorValues.description = this.sensors[i].description;
+            if (this.isSensorShown(this.sensors[i].id) !== true) {
+              console.log(`Adding sensor: ${this.environmentSensorValues.id}`);
+              this.sensorsValues.push({ ...this.environmentSensorValues });
+              this.$store.commit('setEnvironmentSensorsValues', this.sensorsValues);
+            }
+          }
+          break;
+        case 'door_sensor_state':
+          this.sensors = this.doorSensors;
+          break;
+        case 'motion_sensor_state':
+          this.sensors = this.motionSensors;
+          break;
+        default:
+          break;
+      }
+    },
+
+    updateSensors() {
+      this.sensors = this.environmentSensors;
+      this.sensorsIds = [];
+      for (let i = 0; i < this.sensors.length; i += 1) {
+        this.environmentSensorValues.id = this.sensors[i].id;
+        this.sensorsIds.push(this.sensors[i].id);
+        this.environmentSensorValues.description = this.sensors[i].description;
+        if (this.isSensorShown(this.sensors[i].id) !== true) {
+          console.log(`Adding sensor: ${this.environmentSensorValues.id}`);
+          this.sensorsValues.push({ ...this.environmentSensorValues });
+          this.$store.commit('setEnvironmentSensorsValues', this.sensorsValues);
+        }
+      }
+    },
+
+    updateSensorsValues(values) {
+      const val = values;
+      if (val === null && val.length > 0) {
+        return;
+      }
+      for (let i = 0; i < val.length; i += 1) {
+        for (let j = 0; j < this.sensorsValues.length; j += 1) {
+          // console.log(`sensorsValues : ${this.sensorsValues[i].id}`);
+          // console.log(`values[j] : ${values[j].id}`);
+          if (this.sensorsValues[j] !== null
+              && val !== null
+              && this.sensorsValues[j].id === val[i].id) {
+            val[i].temperature = val[i].temperature.toFixed(1);
+            val[i].humidity = val[i].humidity.toFixed(1);
+            val[i].air = val[i].gas_value;
+            val[i].airPercent = (val[i].gas_value * 100) / 4095;
+            console.log(`measurements: ${JSON.stringify(val[i])}`);
+            this.sensorsValues.splice(j, 1, val[i]);
+            break;
+          }
+        }
+      }
+    },
+
     getSensorsValues() {
-      const aId = parseInt(this.alarmId, 10);
-      fetch(`http://interactivehome.ddns.net:8080/environment_sensor_state/${this.sensorId}?alarmId=${aId}`)
-        .then(async (response) => {
-          const data = await response.json();
-
-          // check for error response
-          if (!response.ok) {
-          // get error message from body or default to response statusText
-            const error = (data && data.message) || response.statusText;
-            alert(error);
-          }
-
-          this.temperature = data[0].temperature;
-          this.humidity = data[0].humidity;
-          this.air = data[0].gas_value;
-          this.airPercent = (100 * this.air) / 1024;
-        })
-        .catch((error) => {
-          this.errorMessage = error;
-          console.error('There was an error!', error);
+      if (this.alarmId === null || this.sensorsValues === null || !this.sensorsValues.length) {
+        return;
+      }
+      this.fetchEnvironmentSensorsValues()
+        .then((response) => {
+          this.updateSensorsValues(response);
         });
     },
-
-    async discoverDevice() {
-      navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-      })
-        .then((device) => { this.newDevice = device.name; })
-        .catch((error) => { console.error(error); });
+    async fetchEnvironmentSensorsValues() {
+      const url = `http://interactivehome.ddns.net:8080/environment_sensor_state?alarmId=${this.alarmId}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      return data;
     },
-
-    getSensors(tab, forceRefresh) {
-      if (tab === this.activeTab && !forceRefresh) { return; }
-
-      fetch(`http://interactivehome.ddns.net:8080/${this.activeTab}_state?alarmId=${this.alarmId}`)
-        .then(async (response) => {
-          const data = await response.json();
-
-          // check for error response
-          if (!response.ok) {
-            // get error message from body or default to response statusText
-            const error = (data && data.message) || response.statusText;
-            alert(error);
-          }
-
-          this.sensors = data;
-        })
-        .catch((error) => {
-          this.errorMessage = error;
-          console.error('There was an error!', error);
-        });
-    },
-
   },
 };
 
@@ -423,6 +426,18 @@ export default {
 .v-progress-circular {
   margin: 1rem;
   font-size: 250%;
+}
+.v-progress-circular.temperature-progress {
+  color:green;
+  font-size: 170%;
+}
+.v-progress-circular.humidity-progress {
+  color:aqua;
+  font-size: 170%;
+}
+.v-progress-circular.air-progress {
+  color:yellow;
+  font-size: 170%;
 }
 .title {
   margin-left: 1em;

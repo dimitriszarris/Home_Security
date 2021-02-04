@@ -25,16 +25,17 @@ public class EnvironmentSensorServiceImpl implements EnvironmentSensorService {
     }
 
     @Override
-    public Integer registerEnvironmentSensor(EnvironmentSensorDto dto) {
+    public Integer registerEnvironmentSensor(EnvironmentSensorDto dto, Integer alarmId) {
         EnvironmentSensor environmentSensor = new EnvironmentSensor();
-        Integer id = getNextId();
-        environmentSensor.createEnvironmentSensorFromDto(id, dto);
+        Integer id = getNextId(alarmId);
+        environmentSensor.createEnvironmentSensorFromDto(id, dto, alarmId);
         mongoTemplate.save(environmentSensor);
         return environmentSensor.get_id();
     }
 
-    private Integer getNextId() {
+    private Integer getNextId(Integer alarmId) {
         Query query = new Query();
+        query.addCriteria(Criteria.where("alarm_id").is(alarmId));
         query.with(new org.springframework.data.domain.Sort(Sort.Direction.DESC, "_id"));
         if(mongoTemplate.findOne(query, EnvironmentSensor.class) != null)
             return mongoTemplate.findOne(query, EnvironmentSensor.class).get_id() + 1;

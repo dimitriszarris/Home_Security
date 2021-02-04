@@ -7,6 +7,7 @@ import com.interactivehome.main_service.model.events.dto.EnvironmentSensorStateD
 import java.rmi.activation.ActivationGroup_Stub;
 import java.util.Date;
 import lombok.Data;
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -17,7 +18,10 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public class EnvironmentSensorState {
   @Id
   @Field("_id")
-  private Integer _id;
+  private ObjectId _id;
+
+  @Field("sensor_id")
+  private Integer sensorId;
 
   @Field("alarm_id")
   private Integer alarmId;
@@ -32,13 +36,25 @@ public class EnvironmentSensorState {
   private Date updatedUtc;
 
   public void mapFromDto(Integer id, EnvironmentSensorStateDto dto) {
-    _id = id;
-    alarmId = dto.alarmId;
+    sensorId = id;
     temperature = dto.temperature;
     humidity = dto.humidity;
     pressure = dto.pressure;
     altitude = dto.altitude;
     gasValue = dto.gasValue;
     updatedUtc = new Date(System.currentTimeMillis());
+  }
+
+  public EnvironmentSensorStateDto mapToDto() {
+    EnvironmentSensorStateDto dto = new EnvironmentSensorStateDto();
+    dto.set_id(sensorId);
+    dto.setAlarmId(alarmId);
+    dto.setTemperature(temperature);
+    dto.setHumidity(humidity);
+    dto.setGasValue(gasValue);
+    dto.setAltitude(altitude);
+    dto.setPressure(pressure);
+    dto.setUpdatedUtc(updatedUtc);
+    return dto;
   }
 }

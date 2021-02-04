@@ -16,11 +16,11 @@
     <v-row justify="center">
       <v-col cols="8" xs="12">
         <v-card elevation="4">
-          <v-card-title class="active-alarm justify-center">
-             {{alarmStateObjects[this.selectedAlarmObject].title}}
+          <v-card-title v-if="selectedAlarmObject != -1" class="active-alarm justify-center">
+             {{alarmStateObjects[selectedAlarmObject].title}}
             <v-card-text v-if="alarmState != null">
               <div class="d-flex flex-column justify-space-between align-center">
-                <v-img :src="alarmStateObjects[this.selectedAlarmObject].src"/>
+                <v-img :src="alarmStateObjects[selectedAlarmObject].src"/>
               </div>
             </v-card-text>
             <v-card-text v-if="alarmState == null">
@@ -40,7 +40,8 @@
     <v-row justify="center">
       <v-col cols="4" xs="6"
        v-for="(unselectedAlarm, index) in unselectedAlarmObjects" :key="index">
-        <v-card fill-height @click="arm(unselectedAlarm.alarmState)"
+        <v-card v-if="unselectedAlarmObjects.length > 0"
+           fill-height @click="arm(unselectedAlarm.alarmState)"
           elevation="4"
         >
           <v-card-title class="inactive-alarm justify-center">
@@ -64,7 +65,6 @@
         </v-card>
       </v-col>
     </v-row>
-    <!-- <v-row v-for="(sensor, index) of sensors" :key="index"> -->
     <v-row>
       <v-col>
         <v-card
@@ -79,23 +79,15 @@
       </v-col>
     </v-row>
     <v-row>
-      <v-col cols="6" lg="3" md="4" sm="12" xs="12">
+      <v-col cols="6" lg="4" md="4" sm="12" xs="12">
         <v-card
           elevation="4">
           <v-card-title class="justify-center">
             Temp (&#176;C)
-            <v-card-text v-if="temperature != null">
-              <div class="d-flex flex-column justify-space-between align-center">
-                <v-progress-circular class="temperature-progress"
-                  :rotate="180"
-                  :size="170"
-                  :width="50"
-                  min="-40"
-                  max="40"
-                  :value="temperature"
-                >
-                  {{ temperature }}
-                </v-progress-circular>
+            <v-card-text v-if="temperatureSeries[0] != null">
+              <div id="chart" class="d-flex flex-column justify-space-between align-center">
+                <apexchart :options="chartOptions" :series="temperatureSeries">
+                </apexchart>
               </div>
             </v-card-text>
             <v-card-text v-else>
@@ -111,21 +103,15 @@
           </v-card-title>
         </v-card>
       </v-col>
-      <v-col cols="6" lg="3" md="4" sm="12" xs="12">
+      <v-col cols="6" lg="4" md="4" sm="12" xs="12">
         <v-card
           elevation="4">
           <v-card-title class="justify-center">
             Humidity
             <v-card-text v-if="humidity != null">
               <div class="d-flex flex-column justify-space-between align-center">
-                <v-progress-circular class="humidity-progress"
-                  :rotate="180"
-                  :size="170"
-                  :width="50"
-                  :value="humidity"
-                >
-                  {{ humidity }}%
-                </v-progress-circular>
+                <apexchart :options="chartOptions" :series="humiditySeries">
+                </apexchart>
               </div>
             </v-card-text>
             <v-card-text v-else>
@@ -141,7 +127,7 @@
           </v-card-title>
         </v-card>
       </v-col>
-      <v-col cols="6" lg="3" md="4" sm="12" x="12">
+      <v-col cols="6" lg="4" md="4" sm="12" x="12">
         <v-card
           elevation="4">
           <v-card-title class="justify-center">
@@ -174,7 +160,6 @@
         </v-card>
       </v-col>
     </v-row>
-    <!-- </v-row> -->
   </v-container>
 </template>
 
@@ -183,15 +168,78 @@ import alarmStateObjects from '../data/alarmState';
 
 export default {
   name: 'Main',
+
   data() {
     return {
-      sensorId: 0,
-      // alarmOn: null,
-      // alarmState: null,
       temperature: null,
       humidity: null,
       air: null,
       airPercent: null,
+      temperatureSeries: [],
+      humiditySeries: [],
+      chartOptions: {
+        chart: {
+          type: 'radialBar',
+          offsetY: 0,
+          sparkline: {
+            enabled: true,
+          },
+        },
+        plotOptions: {
+          radialBar: {
+            startAngle: -90,
+            endAngle: 90,
+            track: {
+              // background: '#e7e7e7',
+              // strokeWidth: '97%',
+              margin: 0, // margin is in pixels
+              dropShadow: {
+                enabled: false,
+                top: 0,
+                left: 0,
+                color: '#999',
+                opacity: 1,
+                blur: 1,
+              },
+            },
+            dataLabels: {
+              name: {
+                show: false,
+              },
+              value: {
+                offsetY: 0,
+                fontSize: '22px',
+                color: '#2196F3',
+              },
+              total: {
+                show: true,
+                label: 'Total',
+                color: '#2196F3',
+              },
+            },
+          },
+        },
+        grid: {
+          padding: {
+            top: -10,
+          },
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shade: 'light',
+            shadeIntensity: 0.4,
+            inverseColors: false,
+            opacityFrom: 1,
+            opacityTo: 1,
+            stops: [0, 50, 53, 91],
+          },
+        },
+        labels: [/* 'Average Results' */],
+      },
+      sensorId: 0,
+      // alarmOn: null,
+      // alarmState: null,
       // temHumAirSensors,
       // doorSensors,
       // movementSensors,
@@ -205,7 +253,7 @@ export default {
     this.setSelectedAlarmState();
     this.getSensorsValues();
     setInterval(this.getSensorsValues, 1000);
-    setInterval(this.setSelectedAlarmState, 1000);
+    setInterval(this.setSelectedAlarmState, 100);
   },
 
   computed: {
@@ -213,17 +261,20 @@ export default {
       return this.$store.state.loggedIn;
     },
     alarmId() {
-      return this.$store.state.activeAlarm;
+      return this.$store.state.alarmId;
     },
     alarmState() {
       return this.$store.state.alarmState;
+    },
+    alarmIdLoaded() {
+      return this.$store.state.alarmId > 0;
     },
   },
 
   methods: {
 
     setSelectedAlarmState() {
-      if (this.alarmId === null) {
+      if (this.alarmId === null || this.alarmId === 0) {
         return;
       }
 
@@ -249,6 +300,8 @@ export default {
     },
 
     getSensorsValues() {
+      if (this.alarmId === null || this.sensorId === null) return;
+
       const aId = parseInt(this.alarmId, 10);
       fetch(`http://interactivehome.ddns.net:8080/environment_sensor_state/${this.sensorId}?alarmId=${aId}`)
         .then(async (response) => {
@@ -265,6 +318,8 @@ export default {
           this.humidity = parseInt(data[0].humidity, 10);
           this.air = data[0].gas_value;
           this.airPercent = (100 * this.air) / 1024;
+          this.temperatureSeries[0] = this.temperature;
+          this.humiditySeries[0] = this.humidity;
         })
         .catch((error) => {
           this.errorMessage = error;
@@ -311,14 +366,6 @@ export default {
 .v-progress-circular {
   margin: 1rem;
   font-size: 250%;
-}
-.v-progress-circular.temperature-progress {
-  color:green;
-  font-size: 170%;
-}
-.v-progress-circular.humidity-progress {
-  color:aqua;
-  font-size: 170%;
 }
 .v-progress-circular.air-progress {
   color:yellow;
