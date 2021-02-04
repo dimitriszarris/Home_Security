@@ -18,8 +18,9 @@ public class MotionSensorController {
     }
 
     @PostMapping("/motion_sensor")
-    public void registerMotionSensor(@RequestBody MotionSensorDto dto) {
-        motionSensorService.registerMotionSensor(dto);
+    public void registerMotionSensor(@RequestBody MotionSensorDto dto,
+                                     @RequestParam(value = "alarmId") Integer alarmId) {
+        motionSensorService.registerMotionSensor(dto, alarmId);
     }
 
     @PutMapping("/motion_sensor/{id}")

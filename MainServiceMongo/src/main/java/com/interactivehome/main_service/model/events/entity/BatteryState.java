@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.interactivehome.main_service.model.events.dto.BatteryStateDto;
 import java.util.Date;
 import lombok.Data;
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -15,7 +16,10 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public class BatteryState {
   @Id
   @Field("_id")
-  private Integer _id;
+  private ObjectId _id;
+
+  @Field("battery_id")
+  private Integer batteryId;
 
   @Field("alarm_id")
   private Integer alarmId;
@@ -30,8 +34,7 @@ public class BatteryState {
   private Date updatedUtc;
 
   public void mapFromDto(Integer id, BatteryStateDto dto) {
-    _id = id;
-    alarmId = dto.alarmId;
+    batteryId = id;
     batteryVoltage = dto.batteryVoltage;
     batteryPercentage = dto.batteryPercentage;
     updatedUtc = new Date(System.currentTimeMillis());

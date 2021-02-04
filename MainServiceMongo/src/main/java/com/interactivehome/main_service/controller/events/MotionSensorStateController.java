@@ -1,5 +1,6 @@
 package com.interactivehome.main_service.controller.events;
 
+import com.interactivehome.main_service.model.common.dto.ResponseDto;
 import com.interactivehome.main_service.model.device.entity.AlarmSystem;
 import com.interactivehome.main_service.model.events.dto.MotionSensorStateDto;
 import com.interactivehome.main_service.model.events.entity.AlarmSystemState;
@@ -21,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import javax.websocket.server.PathParam;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -32,28 +32,33 @@ public class MotionSensorStateController {
   @Autowired
   private AlarmSystemStateService alarmSystemStateService;
 
-  private final RestTemplate restTemplate;
-
-  MotionSensorStateController(MotionSensorStateService motionSensorStateService,
-                              RestTemplate restTemplate) {
+  MotionSensorStateController(MotionSensorStateService motionSensorStateService) {
     this.motionSensorStateService = motionSensorStateService;
-    this.restTemplate = restTemplate;
   }
 
   @PostMapping("/motion_sensor_state/{id}")
-  public ResponseEntity<String> postMovementSensorState(@PathVariable Integer id,
-                                                        @RequestBody MotionSensorStateDto dto) {
-    List<AlarmSystemState> alarmSystemState = alarmSystemStateService.getAlarmStateByIdFromDateToDate(dto.alarmId, null, null);
-    if(alarmSystemState == null)
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("The alarm is not set");
+  public ResponseEntity<ResponseDto> postMovementSensorState(@PathVariable Integer id,
+                                                             @RequestParam(value = "alarmId") Integer alarmId,
+                                                             @RequestBody MotionSensorStateDto dto) {
+    List<AlarmSystemState> alarmSystemState = alarmSystemStateService.getAlarmStateByIdFromDateToDate(alarmId, null, null);
+    if(alarmSystemState == null) {
+      ResponseDto responseDto = new ResponseDto();
+      responseDto.setSuccess(false);
+      responseDto.setMessage("The alarm is not set");
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(responseDto);
+    }
     System.out.println("AlarmSystemState state is : " + alarmSystemState.toString());
     if(alarmSystemState.get(0).getAlarmState() == 0) {
       System.out.println("The alarm is deactivated.");
-      return ResponseEntity.ok("200");
+      ResponseDto responseDto = new ResponseDto();
+      responseDto.setSuccess(true);
+      responseDto.setMessage("The alarm is deactivated.");
+      return ResponseEntity.ok(responseDto);
     }
-
-    motionSensorStateService.saveStateBySensorId(id, dto);
-    return ResponseEntity.ok("201");
+    motionSensorStateService.saveStateBySensorId(id, alarmId, dto);
+    ResponseDto responseDto = new ResponseDto();
+    responseDto.setSuccess(true);
+    return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
   }
 
   @GetMapping("motion_sensor_state/{id}")

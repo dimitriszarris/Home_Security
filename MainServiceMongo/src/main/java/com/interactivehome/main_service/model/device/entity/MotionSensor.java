@@ -38,10 +38,10 @@ public class MotionSensor {
     @Field("created_utc")
     private Date createdUtc;
 
-    public void createMotionSensorFromDto(Integer id, MotionSensorDto dto)
+    public void createMotionSensorFromDto(Integer id, MotionSensorDto dto, Integer alarmId)
     {
         _id = id;
-        alarmId = dto.alarmId;
+        this.alarmId = alarmId;
         description = dto.description;
         deviceIdentifier = dto.deviceIdentifier;
         enabled = dto.enabled;

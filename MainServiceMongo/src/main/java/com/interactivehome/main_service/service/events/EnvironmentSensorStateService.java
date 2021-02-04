@@ -6,8 +6,8 @@ import java.util.Date;
 import java.util.List;
 
 public interface EnvironmentSensorStateService {
-  void saveValuesBySensorId(Integer id, EnvironmentSensorStateDto dto);
+  void saveValuesBySensorId(Integer id, Integer alarmId, EnvironmentSensorStateDto dto);
 
-  List<EnvironmentSensorState> getValuesByAlarmIdAndSensorIdFromDateToDate(
+  List<EnvironmentSensorStateDto> getValuesByAlarmIdAndSensorIdFromDateToDate(
       Integer alarmId, Integer sensorId, Date fromDate, Date toDate);
 }

@@ -6,7 +6,7 @@ import com.interactivehome.main_service.model.device.entity.MotionSensor;
 import java.util.List;
 
 public interface MotionSensorService {
-    void registerMotionSensor(MotionSensorDto motionSensorDto);
+    void registerMotionSensor(MotionSensorDto motionSensorDto, Integer alarmId);
     MotionSensor modifyMotionSensorByAlarmIdAndId(Integer alarmId, Integer id, MotionSensorDto motionSensorDto);
     MotionSensor getMotionSensorByAlarmIdAndId(Integer alarmId, Integer id);
     List<MotionSensor> getAllMotionSensorsByAlarmId(Integer alarmId);

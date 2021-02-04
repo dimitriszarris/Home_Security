@@ -2,6 +2,7 @@ package com.interactivehome.main_service.controller.user;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interactivehome.main_service.model.common.dto.ResponseDto;
 import com.interactivehome.main_service.model.user.dto.UserDto;
 import com.interactivehome.main_service.model.user.entity.User;
 import com.interactivehome.main_service.service.user.UserService;
@@ -21,18 +22,12 @@ public class UserController {
     }
 
     @PostMapping("/user")
-    public ResponseEntity<String> RegisterUser(@RequestBody UserDto dto) {
+    public ResponseEntity<ResponseDto> RegisterUser(@RequestBody UserDto dto) {
         userService.registerUser(dto);
-        String body = "";
-        try {
-            ObjectMapper map = new ObjectMapper();
-            body = map.writeValueAsString(dto);
-        } catch (JsonProcessingException e) {
-            System.out.println("Json Processing Exception: " + e.getMessage());
-            return (ResponseEntity<String>) ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
 
-        return ResponseEntity.ok(body);
+        ResponseDto responseDto = new ResponseDto();
+        responseDto.setSuccess(true);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 
     @GetMapping("/user/{userId}")

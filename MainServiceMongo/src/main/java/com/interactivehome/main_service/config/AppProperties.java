@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("iot")
 @Data
 public class AppProperties {
-  public String securityControllerIpPort;
-  public String verificationProcessEndpoint;
-  public Integer verificationProcessTimeoutSec;
-  public String alarmStateEndpoint;
-  public String stopAlarmEndpoint;
+  private String securityControllerIpPort;
+  private String verificationProcessEndpoint;
+  private Integer verificationProcessTimeoutSec;
+  private String alarmStateEndpoint;
+  private String stopAlarmEndpoint;
 }

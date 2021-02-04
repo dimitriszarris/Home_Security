@@ -48,9 +48,9 @@ public class DoorSensor {
     @Field("created_utc")
     private Date createdUtc;
 
-    public void createDoorSensorFromDto(Integer id, DoorSensorDto dto) {
+    public void createDoorSensorFromDto(Integer id, DoorSensorDto dto, Integer alarmId) {
         _id = id;
-        alarmId = dto.alarmId;
+        this.alarmId = alarmId;
         enabled = dto.enabled;
         description = dto.description;
         deviceIdentifier = dto.deviceIdentifier;

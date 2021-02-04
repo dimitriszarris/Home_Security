@@ -25,17 +25,18 @@ public class MotionSensorServiceImpl implements MotionSensorService {
     }
 
     @Override
-    public void registerMotionSensor(MotionSensorDto dto) {
+    public void registerMotionSensor(MotionSensorDto dto, Integer alarmId) {
         MotionSensor motionSensor = new MotionSensor();
-        Integer id = getNextId();
-        motionSensor.createMotionSensorFromDto(id, dto);
+        Integer id = getNextId(alarmId);
+        motionSensor.createMotionSensorFromDto(id, dto, alarmId);
         mongoTemplate.save(motionSensor);
     }
 
-    private Integer getNextId() {
+    private Integer getNextId(Integer alarmId) {
         Query query = new Query();
+        query.addCriteria(Criteria.where("alarm_id").is(alarmId));
         query.with(new org.springframework.data.domain.Sort(Sort.Direction.DESC, "_id"));
-        if(mongoTemplate.findOne(query, MotionSensor.class) != null)
+        if (mongoTemplate.findOne(query, MotionSensor.class) != null)
             return mongoTemplate.findOne(query, MotionSensor.class).get_id() + 1;
 
         return 1;
@@ -47,9 +48,11 @@ public class MotionSensorServiceImpl implements MotionSensorService {
         query.addCriteria(Criteria.where("_id").is(id));
         query.addCriteria(Criteria.where("alarm_id").is(alarmId));
         MotionSensor motionSensor = mongoTemplate.findOne(query, MotionSensor.class);
-        if(motionSensor != null) {
+        if (motionSensor != null) {
             motionSensor.updateMotionSensorFromDto(dto);
             mongoTemplate.save(motionSensor);
+        } else {
+            // throw Exception()
         }
         return motionSensor;
     }

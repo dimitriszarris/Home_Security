@@ -1,5 +1,6 @@
 package com.interactivehome.main_service.controller.events;
 
+import com.interactivehome.main_service.model.common.dto.ResponseDto;
 import com.interactivehome.main_service.model.events.dto.BatteryStateDto;
 import com.interactivehome.main_service.model.events.entity.BatteryState;
 import com.interactivehome.main_service.service.events.BatteryStateService;
@@ -25,10 +26,13 @@ public class BatteryStateController {
   }
 
   @PostMapping("/battery_state/{id}")
-  public ResponseEntity<String> postBatteryVoltageById(@PathVariable Integer id,
-                                                       @RequestBody BatteryStateDto batteryStateDto) {
-    batteryStateService.saveVoltageBySensorId(id, batteryStateDto);
-    return ResponseEntity.ok("201");
+  public ResponseEntity<ResponseDto> postBatteryVoltageById(@PathVariable Integer id,
+                                                            @RequestParam(value = "alarmId") Integer alarmId,
+                                                            @RequestBody BatteryStateDto batteryStateDto) {
+    batteryStateService.saveVoltageBySensorId(id, alarmId, batteryStateDto);
+    ResponseDto dto = new ResponseDto();
+    dto.setSuccess(true);
+    return ResponseEntity.ok(dto);
   }
 
   @GetMapping("/battery_state/{id}")
