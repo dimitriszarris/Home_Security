@@ -7,3 +7,9 @@
 Html/smarthome/src/assets/image resources.txt
 /Html/home_controller.html
 /Include/WifiCredentials.h
+/DoorSensorESP32/lib/README
+/DoorSensorESP32/include/README
+/DoorSensorESP32/test/README
+/DoorSensorESP32/.vscode/extensions.json
+/DoorSensorESP32/.gitignore
+/DoorSensorESP32/.vscode/settings.json
